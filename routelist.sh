@@ -11,6 +11,11 @@
 
 set -euo pipefail
 
+# Cache json data for X minutes
+# Set as "" to disable caching
+CACHE_FOR_X_MIN="10"
+
+# Default sorting options (See 'man sort')
 SORT_OPTIONS=${@:--k1}
 
 PROPERTIES_TO_SHOW_H='# Host Domain Path Organization Space Created Updated Route_URL Apps_URL'
@@ -18,6 +23,20 @@ PROPERTIES_TO_SHOW='.entity.host, .extra.domain, .entity.path, .extra.organizati
 
 get_json () {
     next_url="$1"
+
+    next_url_hash=$(echo "$next_url" | md5sum)
+    cache_filename="/tmp/.$(basename "$0").$(id -u).$next_url_hash"
+
+    if [[ -n $CACHE_FOR_X_MIN ]]; then
+        # Remove expired cache file
+        find "$cache_filename" -mmin +$CACHE_FOR_X_MIN -exec rm '{}' \; 2>/dev/null
+        # Read from cache if exists
+        if [[ -f "$cache_filename" ]]; then
+            cat "$cache_filename"
+            return
+        fi
+    fi
+
     json_output=""
     while [[ $next_url != null ]]; do
         # Get data
@@ -33,6 +52,11 @@ get_json () {
         next_url=$(echo "$json_data" | jq .next_url -r)
     done
     echo "$json_output"
+
+    # Update cache file
+    if [[ -n $CACHE_FOR_X_MIN ]]; then
+        echo "$json_output" > "$cache_filename"
+    fi
 }
 
 # Get organizations
