@@ -13,8 +13,8 @@ set -euo pipefail
 
 SORT_OPTIONS=${@:--k1}
 
-PROPERTIES_TO_SHOW_H='# Name State Memory Instances Disk_quota Stack Organization Space Created Updated Routes_URL Buildpack Detected_Buildpack'
-PROPERTIES_TO_SHOW='.entity.name, .entity.state, .entity.memory, .entity.instances, .entity.disk_quota, .extra.stack, .extra.organization, .extra.space, .metadata.created_at, .metadata.updated_at, .entity.routes_url, .entity.buildpack, .entity.detected_buildpack'
+PROPERTIES_TO_SHOW_H='# Name State Memory Instances Disk_quota Stack Organization Space Created Updated App_URL Routes_URL Buildpack Detected_Buildpack'
+PROPERTIES_TO_SHOW='.entity.name, .entity.state, .entity.memory, .entity.instances, .entity.disk_quota, .extra.stack, .extra.organization, .extra.space, .metadata.created_at, .metadata.updated_at, .metadata.url, .entity.routes_url, .entity.buildpack, .entity.detected_buildpack'
 
 get_json () {
     next_url="$1"
