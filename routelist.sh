@@ -13,8 +13,8 @@ set -euo pipefail
 
 SORT_OPTIONS=${@:--k1}
 
-PROPERTIES_TO_SHOW_H='# Host Domain Path Organization Space Created Updated Apps_URL'
-PROPERTIES_TO_SHOW='.entity.host, .extra.domain, .entity.path, .extra.organization, .extra.space, .metadata.created_at, .metadata.updated_at, .entity.apps_url'
+PROPERTIES_TO_SHOW_H='# Host Domain Path Organization Space Created Updated Route_URL Apps_URL'
+PROPERTIES_TO_SHOW='.entity.host, .extra.domain, .entity.path, .extra.organization, .extra.space, .metadata.created_at, .metadata.updated_at, .metadata.url, .entity.apps_url'
 
 get_json () {
     next_url="$1"
