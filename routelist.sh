@@ -24,7 +24,7 @@ PROPERTIES_TO_SHOW='.entity.host, .extra.domain, .entity.path, .extra.organizati
 get_json () {
     next_url="$1"
 
-    next_url_hash=$(echo "$next_url" | md5sum)
+    next_url_hash=$(echo "$next_url" | $(which md5sum || which md5))
     cache_filename="/tmp/.$(basename "$0").$(id -u).$next_url_hash"
 
     if [[ -n $CACHE_FOR_X_MIN ]]; then
