@@ -29,7 +29,8 @@ get_json () {
 
     if [[ -n $CACHE_FOR_X_MIN ]]; then
         # Remove expired cache file
-        find "$cache_filename" -mmin +$CACHE_FOR_X_MIN -exec rm '{}' \; 2>/dev/null
+        find "$cache_filename" -mmin +$CACHE_FOR_X_MIN -prune -exec rm '{}' \; 2>/dev/null
+
         # Read from cache if exists
         if [[ -f "$cache_filename" ]]; then
             cat "$cache_filename"
