@@ -21,11 +21,16 @@ SORT_OPTIONS=${@:--k1}
 PROPERTIES_TO_SHOW_H='# Name State Memory Instances Disk_quota Stack Organization Space Created Updated App_URL Routes_URL Buildpack Detected_Buildpack'
 PROPERTIES_TO_SHOW='.entity.name, .entity.state, .entity.memory, .entity.instances, .entity.disk_quota, .extra.stack, .extra.organization, .extra.space, .metadata.created_at, .metadata.updated_at, .metadata.url, .entity.routes_url, .entity.buildpack, .entity.detected_buildpack'
 
+# The following variables are used to generate cache file path
+script_name=$(basename "$0")
+user_id=$(id -u)
+cf_api=$(cf api)
+
 get_json () {
     next_url="$1"
 
-    next_url_hash=$(echo "$next_url" | $(which md5sum || which md5))
-    cache_filename="/tmp/.$(basename "$0").$(id -u).$next_url_hash"
+    next_url_hash=$(echo "$next_url" "$cf_api" | $(which md5sum || which md5))
+    cache_filename="/tmp/.$script_name.$user_id.$next_url_hash"
 
     if [[ -n $CACHE_FOR_X_MIN ]]; then
         # Remove expired cache file
