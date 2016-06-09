@@ -5,9 +5,10 @@ applist.sh
 ----------
 Show all applications running on RPaaS v2.
 
-The script accepts the same sorting options command "sort". Default is "-k1". Example:
+Examples:
 ```
-./applist.sh -nk3
+./applist.sh -s "-nk3"
+./applist.sh -c60 -f1,2,3,4,5,8,10
 ```
 Dependencies:
 - jq (>=1.5) and cf commands must be installed
@@ -17,9 +18,10 @@ routelist.sh
 ----------
 Show all routes for applications running on RPaaS v2.
 
-The script accepts the same sorting options command "sort". Default is "-k1". Example:
+Examples:
 ```
-./routelist.sh -nk3
+./routelist.sh -s "-nk3"
+./routelist.sh -c60 -f1,2,3,4,5,8,10
 ```
 Dependencies:
 - jq (>=1.5) and cf commands must be installed

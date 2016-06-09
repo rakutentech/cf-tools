@@ -15,11 +15,69 @@ set -euo pipefail
 # Set as "" to disable caching
 CACHE_FOR_X_MIN="10"
 
-# Default sorting options (See 'man sort')
-SORT_OPTIONS=${@:--k1}
-
 PROPERTIES_TO_SHOW_H='# Host Domain Path Organization Space Created Updated Route_URL Apps_URL'
 PROPERTIES_TO_SHOW='.entity.host, .extra.domain, .entity.path, .extra.organization, .extra.space, .metadata.created_at, .metadata.updated_at, .metadata.url, .entity.apps_url'
+
+show_usage () {
+    cat << EOF
+Usage: $(basename "$0") [OPTION]...
+
+  -s <sort options>         pass sort options to 'sort'
+  -f <field1,field2,...>    pass field numbers to 'cut -f'
+  -c <minutes>              filter objects created within <minutes>
+  -u <minutes>              filter objects updated within <minutes>
+  -h                        display this help and exit
+EOF
+}
+
+# Process command line options
+opt_sort_options=""
+opt_created_minutes=""
+opt_updated_minutes=""
+opt_cut_fields=""
+while getopts "s:c:u:f:h" opt; do
+    case $opt in
+        s)  opt_sort_options=$OPTARG
+            ;;
+        c)  opt_created_minutes=$OPTARG
+            ;;
+        u)  opt_updated_minutes=$OPTARG
+            ;;
+        f)  opt_cut_fields=$OPTARG
+            ;;
+        h)
+            show_usage
+            exit 0
+            ;;
+        ?)
+            show_usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Default sorting options (See 'man sort')
+SORT_OPTIONS=${opt_sort_options:--k1}
+
+# Define command to cut specific fields
+if [[ -z $opt_cut_fields ]]; then
+    CUT_FIELDS="cat"
+else
+    CUT_FIELDS="cut -f $opt_cut_fields"
+fi
+
+# Post filter
+POST_FILTER=""
+if [[ -n $opt_created_minutes ]]; then
+    POST_FILTER="$POST_FILTER . |
+                 (.metadata.created_at | (now - fromdate) / 60) as \$created_min_ago |
+                 select (\$created_min_ago < $opt_created_minutes) |"
+fi
+if [[ -n $opt_updated_minutes ]]; then
+    POST_FILTER="$POST_FILTER . |
+                 (.metadata.updated_at as \$updated_at | if \$updated_at != null then \$updated_at | (now - fromdate) / 60 else null end ) as \$updated_min_ago |
+                 select (\$updated_min_ago != null) | select (\$updated_min_ago < $opt_updated_minutes) |"
+fi
 
 # The following variables are used to generate cache file path
 script_name=$(basename "$0")
@@ -100,9 +158,15 @@ json_routes=$(echo "$json_spaces"$'\n'"$json_domains"$'\n'"$json_routes" | \
 
 # Generate route list (tab-delimited)
 route_list=$(echo "$json_routes" |\
-    jq -r ".routes[] | [ $PROPERTIES_TO_SHOW | select (. == null) = \"<null>\" | select (. == \"\") = \"<empty>\" ] | @tsv")
+    jq -r ".routes[] |
+        $POST_FILTER
+        [ $PROPERTIES_TO_SHOW | select (. == null) = \"<null>\" | select (. == \"\") = \"<empty>\" ] |
+        @tsv")
+
 
 # Print headers and route_list
 (echo $PROPERTIES_TO_SHOW_H | tr ' ' '\t'; echo "$route_list" | sort -t $'\t' $SORT_OPTIONS | nl -w4) | \
+    # Cut fields
+    eval $CUT_FIELDS | \
     # Format columns for nice output
     column -ts $'\t' | less --quit-if-one-screen --no-init --chop-long-lines
