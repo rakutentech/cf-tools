@@ -24,8 +24,10 @@ Usage: $(basename "$0") [OPTION]...
 
   -s <sort options>         pass sort options to 'sort'
   -f <field1,field2,...>    pass field numbers to 'cut -f'
-  -c <minutes>              filter objects created within <minutes>
-  -u <minutes>              filter objects updated within <minutes>
+  -c <minutes>              filter objects created within last <minutes>
+  -u <minutes>              filter objects updated within last <minutes>
+  -C <minutes>              filter objects created more than <minutes> ago
+  -U <minutes>              filter objects updated more than <minutes> ago
   -h                        display this help and exit
 EOF
 }
@@ -34,14 +36,20 @@ EOF
 opt_sort_options=""
 opt_created_minutes=""
 opt_updated_minutes=""
+opt_created_minutes_older_than=""
+opt_updated_minutes_older_than=""
 opt_cut_fields=""
-while getopts "s:c:u:f:h" opt; do
+while getopts "s:c:u:C:U:f:h" opt; do
     case $opt in
         s)  opt_sort_options=$OPTARG
             ;;
         c)  opt_created_minutes=$OPTARG
             ;;
         u)  opt_updated_minutes=$OPTARG
+            ;;
+        C)  opt_created_minutes_older_than=$OPTARG
+            ;;
+        U)  opt_updated_minutes_older_than=$OPTARG
             ;;
         f)  opt_cut_fields=$OPTARG
             ;;
@@ -77,6 +85,16 @@ if [[ -n $opt_updated_minutes ]]; then
     POST_FILTER="$POST_FILTER . |
                  (.metadata.updated_at as \$updated_at | if \$updated_at != null then \$updated_at | (now - fromdate) / 60 else null end ) as \$updated_min_ago |
                  select (\$updated_min_ago != null) | select (\$updated_min_ago < $opt_updated_minutes) |"
+fi
+if [[ -n $opt_created_minutes_older_than ]]; then
+    POST_FILTER="$POST_FILTER . |
+                 (.metadata.created_at | (now - fromdate) / 60) as \$created_min_ago |
+                 select (\$created_min_ago > $opt_created_minutes_older_than) |"
+fi
+if [[ -n $opt_updated_minutes_older_than ]]; then
+    POST_FILTER="$POST_FILTER . |
+                 (.metadata.updated_at as \$updated_at | if \$updated_at != null then \$updated_at | (now - fromdate) / 60 else null end ) as \$updated_min_ago |
+                 select (\$updated_min_ago != null) | select (\$updated_min_ago > $opt_updated_minutes_older_than) |"
 fi
 
 # The following variables are used to generate cache file path
