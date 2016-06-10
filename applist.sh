@@ -87,7 +87,7 @@ cf_api=$(cf api)
 get_json () {
     next_url="$1"
 
-    next_url_hash=$(echo "$next_url" "$cf_api" | $(which md5sum || which md5))
+    next_url_hash=$(echo "$next_url" "$cf_api" | $(which md5sum || which md5) | cut -d' ' -f1)
     cache_filename="/tmp/.$script_name.$user_id.$next_url_hash"
 
     if [[ -n $CACHE_FOR_X_MIN ]]; then
