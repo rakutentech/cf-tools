@@ -11,10 +11,6 @@
 
 set -euo pipefail
 
-# Cache json data for X minutes
-# Set as "" to disable caching
-CACHE_FOR_X_MIN="10"
-
 PROPERTIES_TO_SHOW_H='# Name State Memory Instances Disk_quota Stack Organization Space Created Updated App_URL Routes_URL Buildpack Detected_Buildpack'
 PROPERTIES_TO_SHOW='.entity.name, .entity.state, .entity.memory, .entity.instances, .entity.disk_quota, .extra.stack, .extra.organization, .extra.space, .metadata.created_at, .metadata.updated_at, .metadata.url, .entity.routes_url, .entity.buildpack, .entity.detected_buildpack'
 
@@ -22,12 +18,14 @@ show_usage () {
     cat << EOF
 Usage: $(basename "$0") [OPTION]...
 
-  -s <sort options>         pass sort options to 'sort'
+  -s <sort options>         pass sort options to 'sort' (default: -k1)
   -f <field1,field2,...>    pass field numbers to 'cut -f'
   -c <minutes>              filter objects created within last <minutes>
   -u <minutes>              filter objects updated within last <minutes>
   -C <minutes>              filter objects created more than <minutes> ago
   -U <minutes>              filter objects updated more than <minutes> ago
+  -k <minutes>              update cache if older tnan <minutes> (default: 10)
+  -n                        ignore cache
   -h                        display this help and exit
 EOF
 }
@@ -39,7 +37,8 @@ opt_updated_minutes=""
 opt_created_minutes_older_than=""
 opt_updated_minutes_older_than=""
 opt_cut_fields=""
-while getopts "s:c:u:C:U:f:h" opt; do
+opt_update_cache_minutes=""
+while getopts "s:c:u:C:U:f:k:nh" opt; do
     case $opt in
         s)  opt_sort_options=$OPTARG
             ;;
@@ -53,6 +52,10 @@ while getopts "s:c:u:C:U:f:h" opt; do
             ;;
         f)  opt_cut_fields=$OPTARG
             ;;
+        k)  opt_update_cache_minutes=$OPTARG
+            ;;
+        n)  opt_update_cache_minutes="no_cache"
+            ;;
         h)
             show_usage
             exit 0
@@ -64,8 +67,11 @@ while getopts "s:c:u:C:U:f:h" opt; do
     esac
 done
 
-# Default sorting options (See 'man sort')
+# Set sorting options, default is '-k1' (See 'man sort')
 SORT_OPTIONS=${opt_sort_options:--k1}
+
+# Set cache update option (default: 10)
+UPDATE_CACHE_MINUTES=${opt_update_cache_minutes:-10}
 
 # Define command to cut specific fields
 if [[ -z $opt_cut_fields ]]; then
@@ -108,9 +114,9 @@ get_json () {
     next_url_hash=$(echo "$next_url" "$cf_api" | $(which md5sum || which md5) | cut -d' ' -f1)
     cache_filename="/tmp/.$script_name.$user_id.$next_url_hash"
 
-    if [[ -n $CACHE_FOR_X_MIN ]]; then
+    if [[ $UPDATE_CACHE_MINUTES != "no_cache" ]]; then
         # Remove expired cache file
-        find "$cache_filename" -maxdepth 0 -mmin +$CACHE_FOR_X_MIN -exec rm '{}' \; 2>/dev/null
+        find "$cache_filename" -maxdepth 0 -mmin +$UPDATE_CACHE_MINUTES -exec rm '{}' \; 2>/dev/null
 
         # Read from cache if exists
         if [[ -f "$cache_filename" ]]; then
@@ -136,7 +142,7 @@ get_json () {
     echo "$json_output"
 
     # Update cache file
-    if [[ -n $CACHE_FOR_X_MIN ]]; then
+    if [[ $UPDATE_CACHE_MINUTES != "no_cache" ]]; then
         echo "$json_output" > "$cache_filename"
     fi
 }
