@@ -26,6 +26,7 @@ Usage: $(basename "$0") [OPTION]...
   -U <minutes>              filter objects updated more than <minutes> ago
   -k <minutes>              update cache if older tnan <minutes> (default: 10)
   -n                        ignore cache
+  -j                        print json (filter and sort options are not applied when -j is in use)
   -h                        display this help and exit
 EOF
 }
@@ -38,7 +39,8 @@ opt_created_minutes_older_than=""
 opt_updated_minutes_older_than=""
 opt_cut_fields=""
 opt_update_cache_minutes=""
-while getopts "s:c:u:C:U:f:k:nh" opt; do
+opt_print_json=""
+while getopts "s:c:u:C:U:f:k:njh" opt; do
     case $opt in
         s)  opt_sort_options=$OPTARG
             ;;
@@ -56,6 +58,8 @@ while getopts "s:c:u:C:U:f:k:nh" opt; do
             ;;
         n)  opt_update_cache_minutes="no_cache"
             ;;
+        j)  opt_print_json="true"
+            ;;
         h)
             show_usage
             exit 0
@@ -66,6 +70,9 @@ while getopts "s:c:u:C:U:f:k:nh" opt; do
             ;;
     esac
 done
+
+# Set printing json option (default: false)
+PRINT_JSON=${opt_print_json:-false}
 
 # Set sorting options, default is '-k1' (See 'man sort')
 SORT_OPTIONS=${opt_sort_options:--k1}
@@ -180,16 +187,20 @@ json_apps=$(echo "$json_stacks"$'\n'"$json_spaces"$'\n'"$json_apps" | \
                      .extra.space = $spaces[.entity.space_guid].entity.name ) |
          .apps | {apps:.}')
 
-# Generate application list (tab-delimited)
-app_list=$(echo "$json_apps" |\
-    jq -r ".apps[] |
-        $POST_FILTER
-        [ $PROPERTIES_TO_SHOW | select (. == null) = \"<null>\" | select (. == \"\") = \"<empty>\" ] |
-        @tsv")
+if $PRINT_JSON; then
+    echo "$json_apps"
+else
+    # Generate application list (tab-delimited)
+    app_list=$(echo "$json_apps" |\
+        jq -r ".apps[] |
+            $POST_FILTER
+            [ $PROPERTIES_TO_SHOW | select (. == null) = \"<null>\" | select (. == \"\") = \"<empty>\" ] |
+            @tsv")
 
-# Print headers and app_list
-(echo $PROPERTIES_TO_SHOW_H | tr ' ' '\t'; echo "$app_list" | sort -t $'\t' $SORT_OPTIONS | nl -w4) | \
-    # Cut fields
-    eval $CUT_FIELDS | \
-    # Format columns for nice output
-    column -ts $'\t' | less --quit-if-one-screen --no-init --chop-long-lines
+    # Print headers and app_list
+    (echo $PROPERTIES_TO_SHOW_H | tr ' ' '\t'; echo "$app_list" | sort -t $'\t' $SORT_OPTIONS | nl -w4) | \
+        # Cut fields
+        eval $CUT_FIELDS | \
+        # Format columns for nice output
+        column -ts $'\t' | less --quit-if-one-screen --no-init --chop-long-lines
+fi
