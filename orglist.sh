@@ -26,6 +26,7 @@ Usage: $(basename "$0") [OPTION]...
   -U <minutes>              filter objects updated more than <minutes> ago
   -k <minutes>              update cache if older tnan <minutes> (default: 10)
   -n                        ignore cache
+  -N                        do not format output and keep it tab-separated (useful for further processing)
   -j                        print json (filter and sort options are not applied when -j is in use)
   -h                        display this help and exit
 EOF
@@ -38,9 +39,10 @@ opt_updated_minutes=""
 opt_created_minutes_older_than=""
 opt_updated_minutes_older_than=""
 opt_cut_fields=""
+opt_format_output=""
 opt_update_cache_minutes=""
 opt_print_json=""
-while getopts "s:c:u:C:U:f:k:njh" opt; do
+while getopts "s:c:u:C:U:f:k:nNjh" opt; do
     case $opt in
         s)  opt_sort_options=$OPTARG
             ;;
@@ -55,6 +57,8 @@ while getopts "s:c:u:C:U:f:k:njh" opt; do
         f)  opt_cut_fields=$OPTARG
             ;;
         k)  opt_update_cache_minutes=$OPTARG
+            ;;
+        N)  opt_format_output="false"
             ;;
         n)  opt_update_cache_minutes="no_cache"
             ;;
@@ -85,6 +89,13 @@ if [[ -z $opt_cut_fields ]]; then
     CUT_FIELDS="cat"
 else
     CUT_FIELDS="cut -f $opt_cut_fields"
+fi
+
+# Define format output command
+if [[ $opt_format_output == "false" ]]; then
+    FORMAT_OUTPUT="cat"
+else
+    FORMAT_OUTPUT="column -ts $'\t'"
 fi
 
 # Post filter
@@ -173,5 +184,5 @@ else
         # Cut fields
         eval $CUT_FIELDS | \
         # Format columns for nice output
-        column -ts $'\t' | less --quit-if-one-screen --no-init --chop-long-lines
+        eval $FORMAT_OUTPUT | less --quit-if-one-screen --no-init --chop-long-lines
 fi
