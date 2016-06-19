@@ -24,7 +24,7 @@ Usage: $(basename "$0") [OPTION]...
   -u <minutes>              filter objects updated within last <minutes>
   -C <minutes>              filter objects created more than <minutes> ago
   -U <minutes>              filter objects updated more than <minutes> ago
-  -k <minutes>              update cache if older tnan <minutes> (default: 10)
+  -k <minutes>              update cache if older than <minutes> (default: 10)
   -n                        ignore cache
   -N                        do not format output and keep it tab-separated (useful for further processing)
   -j                        print json (filter and sort options are not applied when -j is in use)
