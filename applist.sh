@@ -11,15 +11,23 @@
 
 set -euo pipefail
 
-PROPERTIES_TO_SHOW_H='# Name State Memory Instances Disk_quota Stack Organization Space Created Updated App_URL Routes_URL Buildpack Detected_Buildpack'
-PROPERTIES_TO_SHOW='.entity.name, .entity.state, .entity.memory, .entity.instances, .entity.disk_quota, .extra.stack, .extra.organization, .extra.space, .metadata.created_at, .metadata.updated_at, .metadata.url, .entity.routes_url, .entity.buildpack, .entity.detected_buildpack'
+PROPERTIES_TO_SHOW_H=("#" Name State Memory Instances Disk_quota Stack Organization Space Created Updated App_URL Routes_URL Buildpack Detected_Buildpack)
+PROPERTIES_TO_SHOW=(.entity.name .entity.state .entity.memory .entity.instances .entity.disk_quota .extra.stack .extra.organization .extra.space .metadata.created_at .metadata.updated_at .metadata.url .entity.routes_url .entity.buildpack .entity.detected_buildpack)
+
+P_TO_SHOW_H=$(echo "${PROPERTIES_TO_SHOW_H[*]}")
+P_TO_SHOW=$(IFS=','; echo "${PROPERTIES_TO_SHOW[*]}")
+
+declare -A P_INDEX
+for ((i=0; i<${#PROPERTIES_TO_SHOW_H[@]}; i++ )); do
+    P_INDEX[${PROPERTIES_TO_SHOW_H[$i]}]=$(($i+1));
+done
 
 show_usage () {
     cat << EOF
 Usage: $(basename "$0") [OPTION]...
 
   -s <sort options>         pass sort options to 'sort' (default: -k1)
-  -f <field1,field2,...>    pass field numbers to 'cut -f'
+  -f <field1,field2,...>    pass field indexes (or field names) to 'cut -f'
   -c <minutes>              filter objects created within last <minutes>
   -u <minutes>              filter objects updated within last <minutes>
   -C <minutes>              filter objects created more than <minutes> ago
@@ -88,6 +96,19 @@ UPDATE_CACHE_MINUTES=${opt_update_cache_minutes:-10}
 if [[ -z $opt_cut_fields ]]; then
     CUT_FIELDS="cat"
 else
+    opt_cut_fields=$(
+        IFS=','
+        fields=()
+        for f in $opt_cut_fields; do
+            if [[ $f =~ ^[0-9]+$ ]]; then
+                fields+=($f)
+            else
+                fields+=(${P_INDEX[$f]})
+            fi
+        done
+        echo "${fields[*]}"
+    )
+
     CUT_FIELDS="cut -f $opt_cut_fields"
 fi
 
@@ -205,11 +226,11 @@ else
     app_list=$(echo "$json_apps" |\
         jq -r ".apps[] |
             $POST_FILTER
-            [ $PROPERTIES_TO_SHOW | select (. == null) = \"<null>\" | select (. == \"\") = \"<empty>\" ] |
+            [ $P_TO_SHOW | select (. == null) = \"<null>\" | select (. == \"\") = \"<empty>\" ] |
             @tsv")
 
     # Print headers and app_list
-    (echo $PROPERTIES_TO_SHOW_H | tr ' ' '\t'; echo "$app_list" | sort -t $'\t' $SORT_OPTIONS | nl -w4) | \
+    (echo $P_TO_SHOW_H | tr ' ' '\t'; echo "$app_list" | sort -t $'\t' $SORT_OPTIONS | nl -w4) | \
         # Cut fields
         eval $CUT_FIELDS | \
         # Format columns for nice output
