@@ -14,14 +14,6 @@ set -euo pipefail
 PROPERTIES_TO_SHOW_H=("#" Host Domain Path Organization Space Created Updated Route_URL Apps_URL)
 PROPERTIES_TO_SHOW=(.entity.host .extra.domain .entity.path .extra.organization .extra.space .metadata.created_at .metadata.updated_at .metadata.url .entity.apps_url)
 
-P_TO_SHOW_H=$(echo "${PROPERTIES_TO_SHOW_H[*]}")
-P_TO_SHOW=$(IFS=','; echo "${PROPERTIES_TO_SHOW[*]}")
-
-declare -A P_INDEX
-for ((i=0; i<${#PROPERTIES_TO_SHOW_H[@]}; i++ )); do
-    P_INDEX[${PROPERTIES_TO_SHOW_H[$i]}]=$(($i+1));
-done
-
 show_usage () {
     cat << EOF
 Usage: $(basename "$0") [OPTION]...
@@ -38,6 +30,17 @@ Usage: $(basename "$0") [OPTION]...
   -j                        print json (filter and sort options are not applied when -j is in use)
   -h                        display this help and exit
 EOF
+}
+
+P_TO_SHOW_H=$(echo "${PROPERTIES_TO_SHOW_H[*]}")
+P_TO_SHOW=$(IFS=','; echo "${PROPERTIES_TO_SHOW[*]}")
+
+p_index() {
+    for i in "${!PROPERTIES_TO_SHOW_H[@]}"; do
+       if [[ "${PROPERTIES_TO_SHOW_H[$i]}" == "$1" ]]; then
+           echo $(($i+1))
+       fi
+    done
 }
 
 # Process command line options
@@ -103,7 +106,7 @@ else
             if [[ $f =~ ^[0-9]+$ ]]; then
                 fields+=($f)
             else
-                fields+=(${P_INDEX[$f]})
+                fields+=($(p_index "$f"))
             fi
         done
         echo "${fields[*]}"
