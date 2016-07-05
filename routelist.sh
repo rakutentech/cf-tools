@@ -145,12 +145,12 @@ fi
 # The following variables are used to generate cache file path
 script_name=$(basename "$0")
 user_id=$(id -u)
-cf_api=$(cf api)
+cf_target=$(cf target)
 
 get_json () {
     next_url="$1"
 
-    next_url_hash=$(echo "$next_url" "$cf_api" | $(which md5sum || which md5) | cut -d' ' -f1)
+    next_url_hash=$(echo "$next_url" "$cf_target" | $(which md5sum || which md5) | cut -d' ' -f1)
     cache_filename="/tmp/.$script_name.$user_id.$next_url_hash"
 
     if [[ $UPDATE_CACHE_MINUTES != "no_cache" ]]; then
