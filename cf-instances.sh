@@ -4,7 +4,7 @@ set -euo pipefail
 
 APP="$1"
 
-GUIDS=$(cf curl "/v2/apps?q=name%20IN%20${APP}" | jq -r '.resources[].metadata.guid')
+GUIDS=$(cf curl "/v2/apps?q=name:${APP}" | jq -r '.resources[].metadata.guid')
 
 for guid in $GUIDS; do
     echo "$APP ($guid)"
