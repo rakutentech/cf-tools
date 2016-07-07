@@ -176,7 +176,7 @@ get_json () {
         output=$(echo "$json_data" | jq '[ .resources[] | {key: .metadata.guid, value: .} ] | from_entries')
     
         # Add output to json_output
-        json_output=$(echo "${json_output}"$'\n'"$output" | jq -s "add")
+        json_output=$(echo "${json_output}"$'\n'"$output" | jq -s 'add')
     
         # Get URL for next page of results
         next_url=$(echo "$json_data" | jq .next_url -r)

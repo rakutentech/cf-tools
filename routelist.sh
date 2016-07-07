@@ -176,7 +176,7 @@ get_json () {
         output=$(echo "$json_data" | jq '[ .resources[] | {key: .metadata.guid, value: .} ] | from_entries')
     
         # Add output to json_output
-        json_output=$(echo "${json_output}"$'\n'"$output" | jq -s "add")
+        json_output=$(echo "${json_output}"$'\n'"$output" | jq -s 'add')
     
         # Get URL for next page of results
         next_url=$(echo "$json_data" | jq .next_url -r)
@@ -214,14 +214,14 @@ json_domains=$(echo "$json_shared_domains"$'\n'"$json_private_domains" | jq '.[]
 
 # Add extra data to json_spaces
 json_spaces=$(echo "$json_organizations"$'\n'"$json_spaces" | \
-     jq -s '. | add' | \
+     jq -s 'add' | \
      jq '.organizations as $organizations |
          .spaces[] |= (.extra.organization = $organizations[.entity.organization_guid].entity.name) |
          .spaces | {spaces:.}')
 
 # Add extra data to json_routes
 json_routes=$(echo "$json_spaces"$'\n'"$json_domains"$'\n'"$json_routes" | \
-     jq -s '. | add' | \
+     jq -s 'add' | \
      jq '.spaces as $spaces |
          .domains as $domains |
          .routes[] |= (.extra.organization = $spaces[.entity.space_guid].extra.organization |

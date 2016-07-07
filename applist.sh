@@ -176,7 +176,7 @@ get_json () {
         output=$(echo "$json_data" | jq '[ .resources[] | {key: .metadata.guid, value: .} ] | from_entries')
     
         # Add output to json_output
-        json_output=$(echo "${json_output}"$'\n'"$output" | jq -s "add")
+        json_output=$(echo "${json_output}"$'\n'"$output" | jq -s 'add')
     
         # Get URL for next page of results
         next_url=$(echo "$json_data" | jq .next_url -r)
@@ -207,14 +207,14 @@ json_apps=$(get_json "$next_url" | jq "{apps:.}")
 
 # Add extra data to json_spaces
 json_spaces=$(echo "$json_organizations"$'\n'"$json_spaces" | \
-     jq -s '. | add' | \
+     jq -s 'add' | \
      jq '.organizations as $organizations |
          .spaces[] |= (.extra.organization = $organizations[.entity.organization_guid].entity.name) |
          .spaces | {spaces:.}')
 
 # Add extra data to json_apps
 json_apps=$(echo "$json_stacks"$'\n'"$json_spaces"$'\n'"$json_apps" | \
-     jq -s '. | add' | \
+     jq -s 'add' | \
      jq '.stacks as $stacks |
          .spaces as $spaces |
          .apps[] |= (.extra.stack = $stacks[.entity.stack_guid].entity.name |
