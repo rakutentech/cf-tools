@@ -201,9 +201,16 @@ json_spaces=$(get_json "$next_url" | jq "{spaces:.}")
 next_url="/v2/routes?results-per-page=100"
 json_routes=$(get_json "$next_url" | jq "{routes:.}")
 
-# Get domains
-next_url="/v2/domains?results-per-page=100"
-json_domains=$(get_json "$next_url" | jq "{domains:.}")
+# Get shared domains
+next_url="/v2/shared_domains?results-per-page=100"
+json_shared_domains=$(get_json "$next_url" | jq "{shared_domains:.}")
+
+# Get private domains
+next_url="/v2/private_domains?results-per-page=100"
+json_private_domains=$(get_json "$next_url" | jq "{private_domains:.}")
+
+# Get domains (by merging shared domains and private domains)
+json_domains=$(echo "$json_shared_domains"$'\n'"$json_private_domains" | jq '.[]' | jq -s '{domains: add}')
 
 # Add extra data to json_spaces
 json_spaces=$(echo "$json_organizations"$'\n'"$json_spaces" | \
