@@ -19,5 +19,5 @@ for guid in $GUIDS; do
                  ]
                ) | @tsv' 2>/dev/null || \
         echo -e '-\t-\t-\t-'
-    ) | column -ets$'\t'
+    ) | column -ts$'\t'
 done
