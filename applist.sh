@@ -19,7 +19,7 @@ show_usage () {
 Usage: $(basename "$0") [OPTION]...
 
   -s <sort options>         pass sort options to 'sort' (default: -k1)
-  -f <field1,field2,...>    pass field indexes (or field names) to 'cut -f'
+  -f <field1,field2,...>    show only fields specified by indexes or field names
   -c <minutes>              filter objects created within last <minutes>
   -u <minutes>              filter objects updated within last <minutes>
   -C <minutes>              filter objects created more than <minutes> ago
