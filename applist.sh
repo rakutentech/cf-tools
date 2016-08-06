@@ -112,7 +112,8 @@ else
         echo "${fields[*]}"
     )
 
-    CUT_FIELDS="cut -f $opt_cut_fields"
+    cut_fields_awk=$(echo "$opt_cut_fields" | sed 's/\([0-9]\)/$\1/g; s/,/"\\t"/g')
+    CUT_FIELDS='awk "{print $cut_fields_awk}"'
 fi
 
 # Define format output command
