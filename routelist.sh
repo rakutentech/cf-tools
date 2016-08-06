@@ -228,7 +228,7 @@ json_routes=$(echo "$json_spaces"$'\n'"$json_domains"$'\n'"$json_routes" | \
          .routes[] |= (.extra.organization = $spaces[.entity.space_guid].extra.organization |
                        .extra.space = $spaces[.entity.space_guid].entity.name |
                        .extra.domain = $domains[.entity.domain_guid].entity.name ) |
-         .routes| {routes:.}')
+         .routes | {routes:.}')
 
 if $PRINT_JSON; then
     echo "$json_routes"
