@@ -7,8 +7,8 @@ Show all applications running on RPaaS v2.
 
 Examples:
 ```
-./applist.sh -s "-nk3"
-./applist.sh -c60 -f1,2,3,4,5,8,10
+./applist.sh -S Memory
+./applist.sh -c60 -f "#,Name,State,Memory,Instances,Organization,Created"
 ```
 Dependencies:
 - jq (>=1.5) and cf commands must be installed
@@ -20,8 +20,8 @@ Show all routes for applications running on RPaaS v2.
 
 Examples:
 ```
-./routelist.sh -s "-nk3"
-./routelist.sh -c60 -f1,2,3,4,5,6,7
+./routelist.sh -s Created
+./routelist.sh -c60 -f "#,Host,Domain,Path,Organization,Space,Created"
 ```
 Dependencies:
 - jq (>=1.5) and cf commands must be installed
@@ -34,7 +34,7 @@ Show all organizations created on RPaaS v2.
 Examples:
 ```
 ./orglist.sh
-./orglist.sh -c10080 -f1,2,3,7
+./orglist.sh -c10080 -f "#,Name,Status,Created"
 ```
 Dependencies:
 - jq (>=1.5) and cf commands must be installed

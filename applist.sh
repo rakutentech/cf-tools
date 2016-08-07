@@ -18,7 +18,8 @@ show_usage () {
     cat << EOF
 Usage: $(basename "$0") [OPTION]...
 
-  -s <sort options>         pass sort options to 'sort' (default: -k1)
+  -s <sort field>           sort by specified field index or its name
+  -S <sort field>           sort by specified field index or its name (numeric)
   -f <field1,field2,...>    show only fields specified by indexes or field names
   -c <minutes>              filter objects created within last <minutes>
   -u <minutes>              filter objects updated within last <minutes>
@@ -43,8 +44,22 @@ p_index() {
     done
 }
 
+p_names_to_indexes() {
+    IFS=','
+    fields=()
+    for f in $1; do
+        if [[ $f =~ ^[0-9]+$ ]]; then
+            fields+=($f)
+        else
+            fields+=($(p_index "$f"))
+        fi
+    done
+    echo "${fields[*]}"
+}
+
 # Process command line options
 opt_sort_options=""
+opt_sort_field=""
 opt_created_minutes=""
 opt_updated_minutes=""
 opt_created_minutes_older_than=""
@@ -53,9 +68,13 @@ opt_cut_fields=""
 opt_format_output=""
 opt_update_cache_minutes=""
 opt_print_json=""
-while getopts "s:c:u:C:U:f:k:nNjh" opt; do
+while getopts "s:S:c:u:C:U:f:k:nNjh" opt; do
     case $opt in
-        s)  opt_sort_options=$OPTARG
+        s)  opt_sort_options="-k"
+            opt_sort_field=$OPTARG
+            ;;
+        S)  opt_sort_options="-nk"
+            opt_sort_field=$OPTARG
             ;;
         c)  opt_created_minutes=$OPTARG
             ;;
@@ -90,7 +109,10 @@ done
 PRINT_JSON=${opt_print_json:-false}
 
 # Set sorting options, default is '-k1' (See 'man sort')
-SORT_OPTIONS=${opt_sort_options:--k1}
+if [[ -n $opt_sort_field ]]; then
+    opt_sort_field=$(( $(p_names_to_indexes "$opt_sort_field") - 1 ))
+fi
+SORT_OPTIONS="${opt_sort_options:--k} ${opt_sort_field:-1}"
 
 # Set cache update option (default: 10)
 UPDATE_CACHE_MINUTES=${opt_update_cache_minutes:-10}
@@ -99,19 +121,7 @@ UPDATE_CACHE_MINUTES=${opt_update_cache_minutes:-10}
 if [[ -z $opt_cut_fields ]]; then
     CUT_FIELDS="cat"
 else
-    opt_cut_fields=$(
-        IFS=','
-        fields=()
-        for f in $opt_cut_fields; do
-            if [[ $f =~ ^[0-9]+$ ]]; then
-                fields+=($f)
-            else
-                fields+=($(p_index "$f"))
-            fi
-        done
-        echo "${fields[*]}"
-    )
-
+    opt_cut_fields=$(p_names_to_indexes "$opt_cut_fields")
     cut_fields_awk=$(echo "$opt_cut_fields" | sed 's/\([0-9]\)/$\1/g; s/,/"\\t"/g')
     CUT_FIELDS='awk "{print $cut_fields_awk}"'
 fi
