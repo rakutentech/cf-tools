@@ -122,7 +122,7 @@ if [[ -z $opt_cut_fields ]]; then
     CUT_FIELDS="cat"
 else
     opt_cut_fields=$(p_names_to_indexes "$opt_cut_fields")
-    cut_fields_awk=$(echo "$opt_cut_fields" | sed 's/\([0-9]\)/$\1/g; s/,/"\\t"/g')
+    cut_fields_awk=$(echo "$opt_cut_fields" | sed 's/\([0-9][0-9]*\)/$\1/g; s/,/"\\t"/g')
     CUT_FIELDS='awk "{print $cut_fields_awk}"'
 fi
 
