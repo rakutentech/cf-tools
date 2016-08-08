@@ -7,7 +7,7 @@
 
 # Dependencies: cf, jq >= 1.5
 
-# Try 'cf curl /v2/apps' to see what input data looks like
+# Try 'cf curl /v2/organizations' to see what input data looks like
 
 set -euo pipefail
 
