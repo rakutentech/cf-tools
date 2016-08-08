@@ -1,6 +1,20 @@
 #!/bin/bash
 
+# Show list of instances for a particular application
+
+# Stanislav German-Evtushenko, 2016
+# Rakuten inc.
+
+# Dependencies: cf, jq >= 1.5
+
+# Try 'cf curl /v2/apps?q=name:APPNAME' to see what input data looks like
+
 set -euo pipefail
+
+if [[ $# -ne 1 ]]; then
+    echo Usage: $(basename "$0") "APP_NAME"
+    exit 1
+fi
 
 APP="$1"
 
