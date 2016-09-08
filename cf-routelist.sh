@@ -123,7 +123,7 @@ if [[ -z $opt_cut_fields ]]; then
 else
     opt_cut_fields=$(p_names_to_indexes "$opt_cut_fields")
     cut_fields_awk=$(echo "$opt_cut_fields" | sed 's/\([0-9][0-9]*\)/$\1/g; s/,/"\\t"/g')
-    CUT_FIELDS='awk "{print $cut_fields_awk}"'
+    CUT_FIELDS='awk -F$"\t" "{print $cut_fields_awk}"'
 fi
 
 # Define format output command
