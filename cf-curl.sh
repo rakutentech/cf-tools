@@ -16,6 +16,7 @@ show_usage () {
     cat << EOF
 Usage: $(basename "$0") [OPTION]... </v2/...>
 
+  -r                        post-processing: convert array 'resources' to hash
   -k <minutes>              update cache if older than <minutes> (default: 10)
   -n                        ignore cache
   -v                        verbose
@@ -26,10 +27,13 @@ EOF
 }
 
 # Process command line options
+opt_resources_hash=""
 opt_update_cache_minutes=""
 opt_verbose=""
-while getopts "k:nvh" opt; do
+while getopts "rk:nvh" opt; do
     case $opt in
+        r)  opt_resources_hash="true"
+            ;;
         k)  opt_update_cache_minutes=$OPTARG
             ;;
         n)  opt_update_cache_minutes="no_cache"
@@ -55,6 +59,9 @@ if [[ $# -ne 1 ]]; then
 fi
 URL="$1"
 
+# Set output mode (raw or converted to hash)
+RESOURCES_HASH=${opt_resources_hash:-false}
+
 # Set verbosity
 VERBOSE=${opt_verbose:-false}
 
@@ -70,7 +77,7 @@ get_json () {
     next_url="$1"
 
     next_url_hash=$(echo "$next_url" "$cf_target" | $(which md5sum || which md5) | cut -d' ' -f1)
-    cache_filename="/tmp/.$script_name.$user_id.$next_url_hash"
+    cache_filename="/tmp/.$script_name.$user_id.$next_url_hash.$RESOURCES_HASH"
 
     if [[ $UPDATE_CACHE_MINUTES != "no_cache" ]]; then
         # Remove expired cache file
@@ -100,7 +107,11 @@ get_json () {
         fi
 
         # Generate output
-        output=$(echo "$json_data" | jq '[ .resources[] | {key: .metadata.guid, value: .} ] | from_entries')
+        if $RESOURCES_HASH; then
+            output=$(echo "$json_data" | jq '[ .resources[] | {key: .metadata.guid, value: .} ] | from_entries')
+        else
+            output=$(echo "$json_data" | jq '.resources')
+        fi
 
         # Add output to json_output
         json_output=$(echo "${json_output}"$'\n'"$output" | jq -s 'add')
@@ -108,12 +119,24 @@ get_json () {
         # Get URL for next page of results
         next_url=$(echo "$json_data" | jq .next_url -r)
     done
-    echo "$json_output"
+
+    json_output=$(
+        echo "$json_output" |
+        jq "{
+              \"total_results\": (. | length),
+              \"total_pages\": 1,
+              \"prev_url\": null,
+              \"next_url\": null,
+              \"resources\": .
+            }"
+    )
 
     # Update cache file
     if [[ $UPDATE_CACHE_MINUTES != "no_cache" ]]; then
         echo "$json_output" > "$cache_filename"
     fi
+
+    echo "$json_output"
 }
 
 get_json "$1"
