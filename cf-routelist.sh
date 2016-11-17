@@ -29,6 +29,7 @@ Usage: $(basename "$0") [OPTION]...
   -n                        ignore cache
   -N                        do not format output and keep it tab-separated (useful for further processing)
   -j                        print json (filter and sort options are not applied when -j is in use)
+  -v                        verbose
   -h                        display this help and exit
 EOF
 }
@@ -68,7 +69,8 @@ opt_cut_fields=""
 opt_format_output=""
 opt_update_cache_minutes=""
 opt_print_json=""
-while getopts "s:S:c:u:C:U:f:k:nNjh" opt; do
+opt_verbose=""
+while getopts "s:S:c:u:C:U:f:k:nNjvh" opt; do
     case $opt in
         s)  opt_sort_options="-k"
             opt_sort_field=$OPTARG
@@ -94,6 +96,8 @@ while getopts "s:S:c:u:C:U:f:k:nNjh" opt; do
             ;;
         j)  opt_print_json="true"
             ;;
+        v)  opt_verbose="true"
+            ;;
         h)
             show_usage
             exit 0
@@ -104,6 +108,9 @@ while getopts "s:S:c:u:C:U:f:k:nNjh" opt; do
             ;;
     esac
 done
+
+# Set verbosity
+VERBOSE=${opt_verbose:-false}
 
 # Set printing json option (default: false)
 PRINT_JSON=${opt_print_json:-false}
@@ -169,7 +176,7 @@ get_json () {
 
     if [[ $UPDATE_CACHE_MINUTES != "no_cache" ]]; then
         # Remove expired cache file
-        find "$cache_filename" -maxdepth 0 -mmin +$UPDATE_CACHE_MINUTES -exec rm '{}' \; 2>/dev/null
+        find "$cache_filename" -maxdepth 0 -mmin +$UPDATE_CACHE_MINUTES -exec rm '{}' \; 2>/dev/null || true
 
         # Read from cache if exists
         if [[ -f "$cache_filename" ]]; then
@@ -179,16 +186,27 @@ get_json () {
     fi
 
     json_output=""
+    current_page=0
+    total_pages=0
     while [[ $next_url != null ]]; do
         # Get data
         json_data=$(cf curl "$next_url")
-    
+
+        # Show progress
+        current_page=$((current_page + 1))
+        if [[ $total_pages -eq 0 ]]; then
+            total_pages=$(cf curl "$next_url" | jq '.total_pages')
+        fi
+        if $VERBOSE; then
+            echo -ne "Fetched page $current_page from $total_pages ( $next_url )\e[0K\r" >&2
+        fi
+
         # Generate output
         output=$(echo "$json_data" | jq '[ .resources[] | {key: .metadata.guid, value: .} ] | from_entries')
-    
+
         # Add output to json_output
         json_output=$(echo "${json_output}"$'\n'"$output" | jq -s 'add')
-    
+
         # Get URL for next page of results
         next_url=$(echo "$json_data" | jq .next_url -r)
     done
