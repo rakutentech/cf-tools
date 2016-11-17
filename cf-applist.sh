@@ -10,6 +10,7 @@
 # Try 'cf curl /v2/apps' to see what input data looks like
 
 set -euo pipefail
+umask 0077
 
 PROPERTIES_TO_SHOW_H=("#" Name State Memory Instances Disk_quota Stack Organization Space Created Updated App_URL Routes_URL Buildpack Detected_Buildpack)
 PROPERTIES_TO_SHOW=(.entity.name .entity.state .entity.memory .entity.instances .entity.disk_quota .extra.stack .extra.organization .extra.space .metadata.created_at .metadata.updated_at .metadata.url .entity.routes_url .entity.buildpack .entity.detected_buildpack)

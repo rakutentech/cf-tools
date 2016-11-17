@@ -10,6 +10,7 @@
 # Try 'cf curl /v2/organizations' to see what input data looks like
 
 set -euo pipefail
+umask 0077
 
 PROPERTIES_TO_SHOW_H=("#" Name Status Managers Users Auditors Created Updated Organization_URL)
 PROPERTIES_TO_SHOW=(.entity.name .entity.status .entity.managers_url .entity.users_url .entity.auditors_url .metadata.created_at .metadata.updated_at .metadata.url)

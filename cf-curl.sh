@@ -10,6 +10,7 @@
 # Try 'cf curl /v2/users' to see what input data looks like
 
 set -euo pipefail
+umask 0077
 
 show_usage () {
     cat << EOF

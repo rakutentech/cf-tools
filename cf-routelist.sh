@@ -10,6 +10,7 @@
 # Try 'cf curl /v2/routes' to see what input data looks like
 
 set -euo pipefail
+umask 0077
 
 PROPERTIES_TO_SHOW_H=("#" Host Domain Path Organization Space Created Updated Route_URL Apps_URL)
 PROPERTIES_TO_SHOW=(.entity.host .extra.domain .entity.path .extra.organization .extra.space .metadata.created_at .metadata.updated_at .metadata.url .entity.apps_url)
