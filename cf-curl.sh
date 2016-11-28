@@ -90,6 +90,7 @@ get_json () {
         fi
     fi
 
+    output_all=()
     json_output=""
     current_page=0
     total_pages=0
@@ -108,20 +109,20 @@ get_json () {
 
         # Generate output
         if $RESOURCES_HASH; then
-            output=$(echo "$json_data" | jq '[ .resources[] | {key: .metadata.guid, value: .} ] | from_entries')
+            output_current=$(echo "$json_data" | jq '[ .resources[] | {key: .metadata.guid, value: .} ] | from_entries')
         else
-            output=$(echo "$json_data" | jq '.resources')
+            output_current=$(echo "$json_data" | jq '.resources')
         fi
 
-        # Add output to json_output
-        json_output=$(echo "${json_output}"$'\n'"$output" | jq -s 'add')
+        # Append current output to the result
+        output_all+=("$output_current")
 
         # Get URL for next page of results
         next_url=$(echo "$json_data" | jq .next_url -r)
     done
 
     json_output=$(
-        echo "$json_output" |
+        (IFS=$'\n'; echo "${output_all[*]}") | jq -s 'add' |
         jq "{
               \"total_results\": (. | length),
               \"total_pages\": 1,

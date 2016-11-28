@@ -186,6 +186,7 @@ get_json () {
         fi
     fi
 
+    output_all=()
     json_output=""
     current_page=0
     total_pages=0
@@ -203,20 +204,22 @@ get_json () {
         fi
 
         # Generate output
-        output=$(echo "$json_data" | jq '[ .resources[] | {key: .metadata.guid, value: .} ] | from_entries')
+        output_current=$(echo "$json_data" | jq '[ .resources[] | {key: .metadata.guid, value: .} ] | from_entries')
 
-        # Add output to json_output
-        json_output=$(echo "${json_output}"$'\n'"$output" | jq -s 'add')
+        # Append current output to the result
+        output_all+=("$output_current")
 
         # Get URL for next page of results
         next_url=$(echo "$json_data" | jq .next_url -r)
     done
-    echo "$json_output"
+    json_output=$( (IFS=$'\n'; echo "${output_all[*]}") | jq -s 'add' )
 
     # Update cache file
     if [[ $UPDATE_CACHE_MINUTES != "no_cache" ]]; then
         echo "$json_output" > "$cache_filename"
     fi
+
+    echo "$json_output"
 }
 
 # Get organizations
