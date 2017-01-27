@@ -26,7 +26,7 @@ for guid in $GUIDS; do
     echo "Application: $APP ($guid)"
     ( cf curl "/v2/apps/$guid/stats" | \
         jq -r '["Index", "State", "IP", "Port"],
-               ( keys[] as $key |
+               ( (keys | sort_by(. | tonumber) | .[]) as $key |
                  [ $key, .[$key].state, .[$key].stats.host, .[$key].stats.port |
                    select (. == null) = "<null>" |
                    select (. == "") = "<empty>"
