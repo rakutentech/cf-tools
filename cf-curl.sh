@@ -32,8 +32,9 @@ Usage: $(basename "$0") [OPTION]... </v2/...>
   -n                        ignore cache
   -v                        verbose
 
-Example:
+Examples:
   $(basename "$0") "/v2/users?results-per-page=10"
+  $(basename "$0") "/v2/app_usage_events?results-per-page=10000" > app_usage_events.json
 EOF
 }
 
@@ -115,8 +116,8 @@ get_json () {
             total_pages=$(cf curl "$next_url" | jq '.total_pages')
         fi
         if $VERBOSE; then
-            [[ $current_page -gt 1 ]] && echo -ne "\e[1A" >&2
-            echo -e "Fetched page $current_page from $total_pages ( $next_url )\e[0K\r" >&2
+            [[ $current_page -gt 1 ]] && echo -ne "\033[1A" >&2
+            echo -e "Fetched page $current_page from $total_pages ( $next_url )\033[0K\r" >&2
         fi
 
         # Generate output

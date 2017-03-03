@@ -211,8 +211,8 @@ get_json () {
             total_pages=$(cf curl "$next_url" | jq '.total_pages')
         fi
         if $VERBOSE; then
-            [[ $current_page -gt 1 ]] && echo -ne "\e[1A" >&2
-            echo -e "Fetched page $current_page from $total_pages ( $next_url )\e[0K\r" >&2
+            [[ $current_page -gt 1 ]] && echo -ne "\033[1A" >&2
+            echo -e "Fetched page $current_page from $total_pages ( $next_url )\033[0K\r" >&2
         fi
 
         # Generate output
