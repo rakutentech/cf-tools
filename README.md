@@ -8,13 +8,18 @@ Dependencies:
 ## cf-curl.sh
 Same as `cf curl` but fetches all pages at once.
 
+Examples:
+```
+./cf-curl.sh /v2/users
+```
+
 
 ## cf-instances.sh
 Show list of instances for a particular application.
 
 Examples:
 ```
-cf-instances.sh myapp
+./cf-instances.sh myapp
 ```
 
 
