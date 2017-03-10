@@ -36,13 +36,33 @@ for guid in $GUIDS; do
     $nl && echo -ne "\n" || nl=true
     echo "Application: $APP ($guid)"
     ( cf curl "/v2/apps/$guid/stats" | \
-        jq -r '["Index", "State", "IP", "Port"],
+        jq -r 'def bytes_to_megabytes_str(bytes):
+                     bytes / pow(1024;2) * 10 |
+                     floor / 10 |
+                     tostring
+               ;
+
+               def number_to_percent_str(number):
+                     number * 1000 |
+                     floor / 10 |
+                     tostring
+               ;
+
+               ["Index", "State", "IP", "Port", "CPU", "Mem", "Mem_Quota", "Disk", "Disk_Quota"],
                ( (keys | sort_by(. | tonumber) | .[]) as $key |
-                 [ $key, .[$key].state, .[$key].stats.host, .[$key].stats.port |
-                   select (. == null) = "<null>" |
-                   select (. == "") = "<empty>"
+                 [ $key,
+                   .[$key].state,
+                   .[$key].stats.host,
+                   .[$key].stats.port,
+                   number_to_percent_str(.[$key].stats.usage.cpu) + "%",
+                   bytes_to_megabytes_str(.[$key].stats.usage.mem) + "M",
+                   bytes_to_megabytes_str(.[$key].stats.mem_quota) + "M",
+                   bytes_to_megabytes_str(.[$key].stats.usage.disk) + "M",
+                   bytes_to_megabytes_str(.[$key].stats.disk_quota) + "M" |
+                     select (. == null) = "<null>" |
+                     select (. == "") = "<empty>"
                  ]
                ) | @tsv' 2>/dev/null || \
-        echo -e '-\t-\t-\t-'
+        echo -e '-\t-\t-\t-\t-\t-\t-\t-\t-'
     ) | column -ts$'\t'
 done

@@ -15,7 +15,7 @@ Examples:
 
 
 ## cf-instances.sh
-Show list of instances for a particular application.
+Show list of instances (ip, port and some stats) for a particular application.
 
 Examples:
 ```
