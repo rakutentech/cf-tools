@@ -293,11 +293,6 @@ json_routes=$(echo "$json_domains"$'\n'"$json_routes" | \
          .routes | {routes:.}')
 
 # Join apps to routes
-echo "$json_domains" >/tmp/json_domains.txt
-echo "$json_routes" >/tmp/json_routes.txt
-echo "$json_route_mappings" >/tmp/json_route_mappings.txt
-echo "$json_apps" >/tmp/json_apps.txt
-
 json_apps=$(echo "$json_routes"$'\n'"$json_route_mappings"$'\n'"$json_apps" | \
      jq -s 'add' | \
      jq '.routes as $routes |
