@@ -48,10 +48,11 @@ for guid in $GUIDS; do
                      tostring
                ;
 
-               ["Index", "State", "IP", "Port", "CPU", "Mem", "Mem_Quota", "Disk", "Disk_Quota"],
+               ["Index", "State", "Uptime", "IP", "Port", "CPU", "Mem", "Mem_Quota", "Disk", "Disk_Quota"],
                ( (keys | sort_by(. | tonumber) | .[]) as $key |
                  [ $key,
                    .[$key].state,
+                   (.[$key].stats.uptime | tostring) + "s",
                    .[$key].stats.host,
                    .[$key].stats.port,
                    number_to_percent_str(.[$key].stats.usage.cpu) + "%",
@@ -63,6 +64,6 @@ for guid in $GUIDS; do
                      select (. == "") = "<empty>"
                  ]
                ) | @tsv' 2>/dev/null || \
-        echo -e '-\t-\t-\t-\t-\t-\t-\t-\t-'
+        echo -e '-\t-\t-\t-\t-\t-\t-\t-\t-\t-'
     ) | column -ts$'\t'
 done
