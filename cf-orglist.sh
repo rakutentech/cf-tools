@@ -131,7 +131,7 @@ PRINT_JSON=${opt_print_json:-false}
 if [[ -n $opt_sort_field ]]; then
     opt_sort_field=$(( $(p_names_to_indexes "$opt_sort_field") - 1 ))
 fi
-SORT_OPTIONS="${opt_sort_options:--k} ${opt_sort_field:-1}"
+SORT_OPTIONS="${opt_sort_options:--k} ${opt_sort_field:-1},${opt_sort_field:-1}"
 
 # Set cache update option (default: 10)
 UPDATE_CACHE_MINUTES=${opt_update_cache_minutes:-10}
