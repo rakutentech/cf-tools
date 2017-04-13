@@ -53,6 +53,17 @@ Examples:
 ```
 
 
+## cf-routemappings.sh
+Show all Route Mappings for Applications running on Cloud Foundry.
+
+Examples:
+```
+./cf-routemappings.sh
+
+# Add Organizations and Spaces to the output
+join --header -t$'\t' <(./cf-routemappings.sh -Nf App,Route -s App) <(./cf-applist.sh -Nf Name,Organization,Space -s Name) | column -ts$'\t' | less
+```
+
 ## See also
 - Cloud Foundry API v2: https://apidocs.cloudfoundry.org
 

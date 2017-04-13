@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# cf-applist.sh - Show list of Applications running on Cloud Foundry
-# Copyright (C) 2016  Rakuten, Inc.
+# cf-routemappings.sh - Show all Route Mappings for Applications running on Cloud Foundry
+# Copyright (C) 2016, 2017  Rakuten, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,13 +18,13 @@
 
 # Dependencies: cf, jq >= 1.5
 
-# Run 'cf curl /v2/apps' to see what input data looks like
+# Run 'cf curl /v2/route_mappings' to see what input data looks like
 
 set -euo pipefail
 umask 0077
 
-PROPERTIES_TO_SHOW_H=("#" Name State Memory Instances Disk_quota Stack Organization Space Created Updated App_URL Routes_URL Buildpack Detected_Buildpack)
-PROPERTIES_TO_SHOW=(.entity.name .entity.state .entity.memory .entity.instances .entity.disk_quota .extra.stack .extra.organization .extra.space .metadata.created_at .metadata.updated_at .metadata.url .entity.routes_url .entity.buildpack .entity.detected_buildpack)
+PROPERTIES_TO_SHOW_H=("#" Route App RouteMapping_URL)
+PROPERTIES_TO_SHOW=(.extra.route .extra.app .metadata.url)
 
 show_usage () {
     cat << EOF
@@ -234,51 +234,61 @@ get_json () {
     echo "$json_output"
 }
 
-# Get organizations
-next_url="/v2/organizations?results-per-page=100"
-json_organizations=$(get_json "$next_url" | jq "{organizations:.}")
+# Get route mappings
+next_url="/v2/route_mappings?results-per-page=100"
+json_route_mappings=$(get_json "$next_url" | jq "{route_mappings:.}")
 
-# Get spaces
-next_url="/v2/spaces?results-per-page=100"
-json_spaces=$(get_json "$next_url" | jq "{spaces:.}")
-
-# Get stacks
-next_url="/v2/stacks?results-per-page=100"
-json_stacks=$(get_json "$next_url" | jq "{stacks:.}")
+# Get routes
+next_url="/v2/routes?results-per-page=100"
+json_routes=$(get_json "$next_url" | jq "{routes:.}")
 
 # Get applications
 next_url="/v2/apps?results-per-page=100"
 json_apps=$(get_json "$next_url" | jq "{apps:.}")
 
-# Add extra data to json_spaces
-json_spaces=$(echo "$json_organizations"$'\n'"$json_spaces" | \
-     jq -s 'add' | \
-     jq '.organizations as $organizations |
-         .spaces[] |= (.extra.organization = $organizations[.entity.organization_guid].entity.name) |
-         .spaces | {spaces:.}')
+# Get shared domains
+next_url="/v2/shared_domains?results-per-page=100"
+json_shared_domains=$(get_json "$next_url" | jq "{shared_domains:.}")
 
-# Add extra data to json_apps
-json_apps=$(echo "$json_stacks"$'\n'"$json_spaces"$'\n'"$json_apps" | \
+# Get private domains
+next_url="/v2/private_domains?results-per-page=100"
+json_private_domains=$(get_json "$next_url" | jq "{private_domains:.}")
+
+# Get domains (by merging shared domains and private domains)
+json_domains=$(echo "$json_shared_domains"$'\n'"$json_private_domains" | jq '.[]' | jq -s '{domains: add}')
+
+# Add extra data to json_routes
+json_routes=$(echo "$json_domains"$'\n'"$json_routes" | \
      jq -s 'add' | \
-     jq '.stacks as $stacks |
-         .spaces as $spaces |
-         .apps[] |= (.extra.stack = $stacks[.entity.stack_guid].entity.name |
-                     .extra.organization = $spaces[.entity.space_guid].extra.organization |
-                     .extra.space = $spaces[.entity.space_guid].entity.name ) |
-         .apps | {apps:.}')
+     jq '.domains as $domains |
+         .routes[] |= (.extra.domain = $domains[.entity.domain_guid].entity.name) |
+         .routes | {routes:.}')
+
+# Add extra data to json_route_mappings
+json_route_mappings=$(echo "$json_routes"$'\n'"$json_apps"$'\n'"$json_route_mappings" | \
+     jq -s 'add' | \
+     jq '.routes as $routes |
+         .apps as $apps |
+         .route_mappings[] |= (.extra.app = $apps[.entity.app_guid].entity.name |
+                               .extra.route = (if $routes[.entity.route_guid].entity.host == "" then "" else $routes[.entity.route_guid].entity.host + "." end ) +
+                                              $routes[.entity.route_guid].extra.domain +
+                                              $routes[.entity.route_guid].entity.path) |
+         .route_mappings | {route_mappings:.}')
+
+
 
 if $PRINT_JSON; then
-    echo "$json_apps"
+    echo "$json_route_mappings"
 else
     # Generate application list (tab-delimited)
-    app_list=$(echo "$json_apps" |\
-        jq -r ".apps[] |
+    route_mappings=$(echo "$json_route_mappings" |\
+        jq -r ".route_mappings[] |
             $POST_FILTER
             [ $P_TO_SHOW | select (. == null) = \"<null>\" | select (. == \"\") = \"<empty>\" ] |
             @tsv")
 
-    # Print headers and app_list
-    (echo $P_TO_SHOW_H | tr ' ' '\t'; echo "$app_list" | sort -t $'\t' $SORT_OPTIONS | nl -w4) | \
+    # Print headers and route_mappings
+    (echo $P_TO_SHOW_H | tr ' ' '\t'; echo "$route_mappings" | sort -t $'\t' $SORT_OPTIONS | nl -w4) | \
         # Cut fields
         eval $CUT_FIELDS | \
         # Format columns for nice output
