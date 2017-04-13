@@ -24,7 +24,7 @@ set -euo pipefail
 umask 0077
 
 PROPERTIES_TO_SHOW_H=("#" Name State Memory Instances Disk_quota Stack Organization Space Created Updated App_URL Routes_URL Buildpack Detected_Buildpack)
-PROPERTIES_TO_SHOW=(.entity.name .entity.state .entity.memory .entity.instances .entity.disk_quota .extra.stack .extra.organization .extra.space .metadata.created_at .metadata.updated_at .metadata.url .entity.routes_url .entity.buildpack .entity.detected_buildpack)
+PROPERTIES_TO_SHOW=(.entity.name .entity.state .entity.memory .entity.instances .entity.disk_quota .extra.stack .extra.organization .extra.space .metadata.created_at .metadata.updated_at .metadata.url .extra.routes .entity.buildpack .entity.detected_buildpack)
 
 show_usage () {
     cat << EOF
@@ -250,6 +250,19 @@ json_stacks=$(get_json "$next_url" | jq "{stacks:.}")
 next_url="/v2/apps?results-per-page=100"
 json_apps=$(get_json "$next_url" | jq "{apps:.}")
 
+# Get routes
+next_url="/v2/routes?results-per-page=100"
+json_routes=$(get_json "$next_url" | jq "{routes:.}")
+
+# Get app/route mappings
+next_url="/v2/route_mappings?results-per-page=100"
+json_route_mappings=$(get_json "$next_url" | jq "{route_mappings:.}")
+
+# Get domains
+next_url="/v2/domains?results-per-page=100"
+json_domains=$(get_json "$next_url" | jq "{domains:.}")
+
+
 # Add extra data to json_spaces
 json_spaces=$(echo "$json_organizations"$'\n'"$json_spaces" | \
      jq -s 'add' | \
@@ -266,6 +279,37 @@ json_apps=$(echo "$json_stacks"$'\n'"$json_spaces"$'\n'"$json_apps" | \
                      .extra.organization = $spaces[.entity.space_guid].extra.organization |
                      .extra.space = $spaces[.entity.space_guid].entity.name ) |
          .apps | {apps:.}')
+
+# Add extra data to json_routes
+json_routes=$(echo "$json_domains"$'\n'"$json_routes" | \
+     jq -s 'add' | \
+     jq '.domains as $domains |
+         .routes[] |= (.extra.domain = $domains[.entity.domain_guid].entity.name) |
+         .routes[] |= (.extra.route =
+           ( if .entity.host == "" then "" else .entity.host + "." end ) +
+           .extra.domain +
+           .entity.path
+         ) |
+         .routes | {routes:.}')
+
+# Join apps to routes
+json_apps=$(echo "$json_routes"$'\n'"$json_route_mappings"$'\n'"$json_apps" | \
+     jq -s 'add' | \
+     jq '.routes as $routes |
+         .route_mappings as $route_mappings |
+         .apps[] |= (
+           .metadata.guid as $app_guid |
+           .extra.froutes = [(
+             $route_mappings[] |
+             select(.entity.app_guid == $app_guid) |
+             $routes[.entity.route_guid]
+           )]
+         ) |
+         .apps[] |= (
+          .extra.routes = ( [.extra.froutes[].extra.route] | join(", ") )
+         ) |
+         .apps | {apps:.}')
+
 
 if $PRINT_JSON; then
     echo "$json_apps"
