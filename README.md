@@ -23,6 +23,15 @@ Examples:
 ```
 
 
+## cf-target-app.sh
+Set target org and space using application name
+
+Examples:
+```
+./cf-target-app.sh myapp
+```
+
+
 ## cf-applist.sh
 Show all applications running on Cloud Foundry.
 
