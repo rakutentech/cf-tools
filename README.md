@@ -32,6 +32,15 @@ Examples:
 ```
 
 
+## cf-target-route.sh
+Set target org and space using route
+
+Examples:
+```
+./cf-target-route.sh myroute
+```
+
+
 ## cf-applist.sh
 Show all applications running on Cloud Foundry.
 
