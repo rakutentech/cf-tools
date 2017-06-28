@@ -39,14 +39,14 @@ fi
 targets=$(
     for guid in $GUIDS; do
         app_entry=$(cf curl "/v2/apps/$guid")
-    
+
         space_url=$(echo "$app_entry" | jq -r '.entity.space_url')
         space_entry=$(cf curl "$space_url")
         space_name=$(echo "$space_entry" | jq -r '.entity.name')
-    
+
         org_url=$(echo "$space_entry" | jq -r '.entity.organization_url')
         org_name=$(cf curl "$org_url" | jq -r '.entity.name')
-    
+
         echo -e "$guid\t$org_name\t$space_name"
     done
 )
