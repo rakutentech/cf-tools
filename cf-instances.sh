@@ -37,29 +37,45 @@ for guid in $GUIDS; do
     echo "Application: $APP ($guid)"
     ( cf curl "/v2/apps/$guid/stats" | \
         jq -r 'def bytes_to_megabytes_str(bytes):
-                     bytes / pow(1024;2) * 10 |
-                     floor / 10 |
-                     tostring
+                     if bytes != null then
+                       bytes / pow(1024;2) * 10 |
+                       floor / 10 |
+                       tostring + "M"
+                     else
+                       null
+                     end
                ;
 
                def number_to_percent_str(number):
-                     number * 1000 |
-                     floor / 10 |
-                     tostring
+                     if number !=null then
+                       number * 1000 |
+                       floor / 10 |
+                       tostring + "%"
+                     else
+                       null
+                     end
+               ;
+               def seconds_to_seconds_str(seconds):
+                     if seconds != null then
+                       seconds |
+                       tostring + "s"
+                     else
+                       null
+                     end
                ;
 
                ["Index", "State", "Uptime", "IP", "Port", "CPU", "Mem", "Mem_Quota", "Disk", "Disk_Quota"],
                ( (keys | sort_by(. | tonumber) | .[]) as $key |
                  [ $key,
                    .[$key].state,
-                   (.[$key].stats.uptime | tostring) + "s",
+                   seconds_to_seconds_str(.[$key].stats.uptime),
                    .[$key].stats.host,
                    .[$key].stats.port,
-                   number_to_percent_str(.[$key].stats.usage.cpu) + "%",
-                   bytes_to_megabytes_str(.[$key].stats.usage.mem) + "M",
-                   bytes_to_megabytes_str(.[$key].stats.mem_quota) + "M",
-                   bytes_to_megabytes_str(.[$key].stats.usage.disk) + "M",
-                   bytes_to_megabytes_str(.[$key].stats.disk_quota) + "M" |
+                   number_to_percent_str(.[$key].stats.usage.cpu),
+                   bytes_to_megabytes_str(.[$key].stats.usage.mem),
+                   bytes_to_megabytes_str(.[$key].stats.mem_quota),
+                   bytes_to_megabytes_str(.[$key].stats.usage.disk),
+                   bytes_to_megabytes_str(.[$key].stats.disk_quota) |
                      select (. == null) = "<null>" |
                      select (. == "") = "<empty>"
                  ]
