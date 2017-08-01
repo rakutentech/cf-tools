@@ -278,7 +278,7 @@ else
             @tsv")
 
     # Print headers and app_list
-    (echo $P_TO_SHOW_H | tr ' ' '\t'; echo "$app_list" | sort -t $'\t' $SORT_OPTIONS | nl -w4) | \
+    (echo $P_TO_SHOW_H | tr ' ' '\t'; echo -n "$app_list" | sort -t $'\t' $SORT_OPTIONS | nl -w4) | \
         # Cut fields
         eval $CUT_FIELDS | \
         # Format columns for nice output

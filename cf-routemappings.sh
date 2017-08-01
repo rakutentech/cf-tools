@@ -288,7 +288,7 @@ else
             @tsv")
 
     # Print headers and route_mappings
-    (echo $P_TO_SHOW_H | tr ' ' '\t'; echo "$route_mappings" | sort -t $'\t' $SORT_OPTIONS | nl -w4) | \
+    (echo $P_TO_SHOW_H | tr ' ' '\t'; echo -n "$route_mappings" | sort -t $'\t' $SORT_OPTIONS | nl -w4) | \
         # Cut fields
         eval $CUT_FIELDS | \
         # Format columns for nice output
