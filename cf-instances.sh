@@ -38,7 +38,7 @@ for guid in $GUIDS; do
     ( cf curl "/v2/apps/$guid/stats" | \
         jq -r 'def bytes_to_megabytes_str(bytes):
                      if bytes != null then
-                       bytes / pow(1024;2) * 10 |
+                       bytes / pow(1024;2) * 10 + 0.5 |
                        floor / 10 |
                        tostring + "M"
                      else
@@ -48,7 +48,7 @@ for guid in $GUIDS; do
 
                def number_to_percent_str(number):
                      if number !=null then
-                       number * 1000 |
+                       number * 1000 + 0.5 |
                        floor / 10 |
                        tostring + "%"
                      else
