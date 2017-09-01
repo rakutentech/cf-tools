@@ -28,8 +28,9 @@ if [[ $# -ne 1 ]]; then
 fi
 
 APP="$1"
+APP_URLENCODED=$(echo "$APP" | jq -Rr @uri)
 
-GUIDS=$(cf curl "/v2/apps?q=name:${APP}" | jq -r '.resources[].metadata.guid')
+GUIDS=$(cf curl "/v2/apps?q=name:${APP_URLENCODED}" | jq -r '.resources[].metadata.guid')
 
 nl=false
 for guid in $GUIDS; do

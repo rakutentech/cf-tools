@@ -28,10 +28,11 @@ if [[ $# -ne 1 ]]; then
 fi
 
 APP="$1"
+APP_URLENCODED=$(echo "$APP" | jq -Rr @uri)
 
 
 # Get all targets
-GUIDS=$(cf curl "/v2/apps?q=name:${APP}" | jq -r '.resources[].metadata.guid')
+GUIDS=$(cf curl "/v2/apps?q=name:${APP_URLENCODED}" | jq -r '.resources[].metadata.guid')
 if [[ -z $GUIDS ]]; then
     echo "ERROR: There are no targets for ${APP}" >&2
     exit 1
