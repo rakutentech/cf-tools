@@ -88,6 +88,12 @@ cf_target=$(cf target)
 get_json () {
     next_url="$1"
 
+    is_api_v2=false
+    is_api_v3=false
+
+    [[ ${next_url#/v2} != $next_url ]] && is_api_v2=true
+    [[ ${next_url#/v3} != $next_url ]] && is_api_v3=true
+
     next_url_hash=$(echo "$next_url" "$cf_target" | $(which md5sum || which md5) | cut -d' ' -f1)
     cache_filename="/tmp/.$script_name.$user_id.$next_url_hash.$RESOURCES_HASH"
 
@@ -113,7 +119,11 @@ get_json () {
         # Show progress
         current_page=$((current_page + 1))
         if [[ $total_pages -eq 0 ]]; then
-            total_pages=$(cf curl "$next_url" | jq '.total_pages')
+            if $is_api_v2; then
+                total_pages=$(cf curl "$next_url" | jq '.total_pages')
+            elif $is_api_v3; then
+                total_pages=$(cf curl "$next_url" | jq '.pagination.total_pages')
+            fi
         fi
         if $VERBOSE; then
             [[ $current_page -gt 1 ]] && echo -ne "\033[1A" >&2
@@ -122,7 +132,11 @@ get_json () {
 
         # Generate output
         if $RESOURCES_HASH; then
-            output_current=$(echo "$json_data" | jq '[ .resources[] | {key: .metadata.guid, value: .} ] | from_entries')
+            if $is_api_v2; then
+                output_current=$(echo "$json_data" | jq '[ .resources[] | {key: .metadata.guid, value: .} ] | from_entries')
+            elif $is_api_v3; then
+                output_current=$(echo "$json_data" | jq '[ .resources[] | {key: .guid, value: .} ] | from_entries')
+            fi
         else
             output_current=$(echo "$json_data" | jq '.resources')
         fi
@@ -131,18 +145,36 @@ get_json () {
         output_all+=("$output_current")
 
         # Get URL for next page of results
-        next_url=$(echo "$json_data" | jq .next_url -r)
+        if $is_api_v2; then
+            next_url=$(echo "$json_data" | jq .next_url -r)
+        elif $is_api_v3; then
+            next_url=$(echo "$json_data" | jq .pagination.next.href -r | sed 's#^http\(s\?\)://[^/]\+/v3#/v3#')
+        fi
     done
 
     json_output=$(
         (IFS=$'\n'; echo "${output_all[*]}") | jq -s 'add' |
-        jq "{
-              \"total_results\": (. | length),
-              \"total_pages\": 1,
-              \"prev_url\": null,
-              \"next_url\": null,
-              \"resources\": .
-            }"
+        if $is_api_v2; then
+            jq "{
+                  \"total_results\": (. | length),
+                  \"total_pages\": 1,
+                  \"prev_url\": null,
+                  \"next_url\": null,
+                  \"resources\": .
+                }"
+        elif $is_api_v3; then
+            jq "{ \"pagination\":
+                  {
+                    \"total_results\": (. | length),
+                    \"total_pages\": 1,
+                    \"first\": null,
+                    \"last\": null,
+                    \"next\": null,
+                    \"previous\": null
+                  },
+                  \"resources\": .
+                }"
+        fi
     )
 
     # Update cache file

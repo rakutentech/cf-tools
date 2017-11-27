@@ -1,4 +1,4 @@
-# Useful shell scripts for Cloud Foundry API v2
+# Useful shell scripts for Cloud Foundry API v2 and v3
 
 Dependencies:
 - jq (>=1.5) and cf commands must be installed
@@ -84,6 +84,7 @@ join --header -t$'\t' <(./cf-routemappings.sh -Nf App,Route -s App) <(./cf-appli
 
 ## See also
 - Cloud Foundry API v2: https://apidocs.cloudfoundry.org
+- Cloud Foundry API v3: http://v3-apidocs.cloudfoundry.org
 
 
 ## Author
