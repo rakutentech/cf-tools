@@ -23,8 +23,8 @@
 set -euo pipefail
 umask 0077
 
-PROPERTIES_TO_SHOW_H=("#" Name GUID State Memory Instances Disk_quota Diego Stack Organization Space Created Updated App_URL Routes_URL Buildpack Detected_Buildpack)
-PROPERTIES_TO_SHOW=(.entity.name .metadata.guid .entity.state .entity.memory .entity.instances .entity.disk_quota .entity.diego .extra.stack .extra.organization .extra.space .metadata.created_at .metadata.updated_at .metadata.url .entity.routes_url .entity.buildpack .entity.detected_buildpack)
+PROPERTIES_TO_SHOW_H=("#" Name GUID State Memory Instances Disk_quota Diego Stack IS Organization Organization_IS Space Space_IS Created Updated App_URL Routes_URL Buildpack Detected_Buildpack)
+PROPERTIES_TO_SHOW=(.entity.name .metadata.guid .entity.state .entity.memory .entity.instances .entity.disk_quota .entity.diego .extra.stack .extra.isolation_segment .extra.organization .extra.organization_isolation_segment .extra.space .extra.space_isolation_segment .metadata.created_at .metadata.updated_at .metadata.url .entity.routes_url .entity.buildpack .entity.detected_buildpack)
 
 show_usage () {
     cat << EOF
@@ -265,25 +265,46 @@ json_spaces=$(get_json "$next_url" | jq "{spaces:.}")
 next_url="/v2/stacks?results-per-page=100"
 json_stacks=$(get_json "$next_url" | jq "{stacks:.}")
 
+# Get isolation_segments
+next_url="/v3/isolation_segments?per_page=100"
+json_isolation_segments=$(get_json "$next_url" | jq "{isolation_segments:.}")
+
 # Get applications
 next_url="/v2/apps?results-per-page=100"
 json_apps=$(get_json "$next_url" | jq "{apps:.}")
 
+# Add extra data to json_organizations
+json_organizations=$(echo "$json_organizations"$'\n'"$json_isolation_segments" | \
+     jq -s 'add' | \
+     jq '.isolation_segments as $isolation_segments |
+         .organizations[] |= (.extra.isolation_segment = ( $isolation_segments[.entity.default_isolation_segment_guid // empty].name // null )
+                             ) |
+         .organizations | {organizations:.}')
+
 # Add extra data to json_spaces
-json_spaces=$(echo "$json_organizations"$'\n'"$json_spaces" | \
+json_spaces=$(echo "$json_organizations"$'\n'"$json_spaces"$'\n'"$json_isolation_segments" | \
      jq -s 'add' | \
      jq '.organizations as $organizations |
-         .spaces[] |= (.extra.organization = $organizations[.entity.organization_guid].entity.name) |
+         .isolation_segments as $isolation_segments |
+         .spaces[] |= (.extra.organization = $organizations[.entity.organization_guid].entity.name |
+                       .extra.isolation_segment = ( $isolation_segments[.entity.isolation_segment_guid // empty].name // null )
+                      ) |
          .spaces | {spaces:.}')
 
 # Add extra data to json_apps
-json_apps=$(echo "$json_stacks"$'\n'"$json_spaces"$'\n'"$json_apps" | \
+json_apps=$(echo "$json_stacks"$'\n'"$json_spaces"$'\n'"$json_isolation_segments"$'\n'"$json_organizations"$'\n'"$json_apps" | \
      jq -s 'add' | \
      jq '.stacks as $stacks |
          .spaces as $spaces |
+         .isolation_segments as $isolation_segments |
+         .organizations as $organizations |
          .apps[] |= (.extra.stack = $stacks[.entity.stack_guid].entity.name |
                      .extra.organization = $spaces[.entity.space_guid].extra.organization |
-                     .extra.space = $spaces[.entity.space_guid].entity.name ) |
+                     .extra.space = $spaces[.entity.space_guid].entity.name |
+                     .extra.organization_isolation_segment = $organizations[$spaces[.entity.space_guid].entity.organization_guid].extra.isolation_segment |
+                     .extra.space_isolation_segment = $spaces[.entity.space_guid].extra.isolation_segment |
+                     .extra.isolation_segment = (.extra.space_isolation_segment // .extra.organization_isolation_segment)
+                    ) |
          .apps | {apps:.}')
 
 if $PRINT_JSON; then
