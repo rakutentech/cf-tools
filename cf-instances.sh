@@ -23,7 +23,8 @@
 set -euo pipefail
 
 if [[ $# -ne 1 ]]; then
-    echo Usage: $(basename "$0") "APP_NAME"
+    echo "Usage: $(basename "$0") APP_NAME"
+    echo "       $(basename "$0") APP_GUID"
     exit 1
 fi
 
@@ -32,10 +33,17 @@ APP_URLENCODED=$(echo "$APP" | jq -Rr @uri)
 
 GUIDS=$(cf curl "/v2/apps?q=name:${APP_URLENCODED}" | jq -r '.resources[].metadata.guid')
 
+# Add application name to the list of GUIDS if it looks like GUID
+HEX='[0-9a-fA-F]'
+if [[ $APP =~ ^$HEX{8}-$HEX{4}-$HEX{4}-$HEX{4}-$HEX{12}$ ]]; then
+    GUIDS="$APP"${GUIDS:+$'\n'}"$GUIDS"
+fi
+
 nl=false
 for guid in $GUIDS; do
     $nl && echo -ne "\n" || nl=true
-    echo "Application: $APP ($guid)"
+    appname=$(cf curl "/v2/apps/$guid" | jq -r '.entity.name // "<null>"')
+    echo "Application: $appname ($guid)"
     ( cf curl "/v2/apps/$guid/stats" | \
         jq -r 'def bytes_to_megabytes_str(bytes):
                      if bytes != null then

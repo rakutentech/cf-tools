@@ -23,7 +23,8 @@
 set -euo pipefail
 
 if [[ $# -ne 1 ]]; then
-    echo Usage: $(basename "$0") "APP_NAME"
+    echo "Usage: $(basename "$0") APP_NAME"
+    echo "       $(basename "$0") APP_GUID"
     exit 1
 fi
 
@@ -31,8 +32,17 @@ APP="$1"
 APP_URLENCODED=$(echo "$APP" | jq -Rr @uri)
 
 
-# Get all targets
+# Get all GUIDS
 GUIDS=$(cf curl "/v2/apps?q=name:${APP_URLENCODED}" | jq -r '.resources[].metadata.guid')
+
+# Add application name to the list of GUIDS if it looks like GUID
+HEX='[0-9a-fA-F]'
+if [[ $APP =~ ^$HEX{8}-$HEX{4}-$HEX{4}-$HEX{4}-$HEX{12}$ ]]; then
+    GUIDS="$APP"${GUIDS:+$'\n'}"$GUIDS"
+    APP="$APP ($(cf curl "/v2/apps/$APP" | jq -r '.entity.name // "<null>"'))"
+fi
+
+# Get all targets
 if [[ -z $GUIDS ]]; then
     echo "ERROR: There are no targets for ${APP}" >&2
     exit 1
@@ -54,7 +64,7 @@ targets=$(
 
 
 # Prompt
-echo "Targets:"
+echo "Targets for $APP:"
 echo
 echo "$targets" | column -ts$'\t' | nl
 echo
