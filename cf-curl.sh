@@ -114,15 +114,15 @@ get_json () {
     total_pages=0
     while [[ $next_url != null ]]; do
         # Get data
-        json_data=$(cf curl "$next_url")
+        json_data=$(cf curl "$next_url") || { echo "ERROR: Unable to get data from $next_url" >&2; exit 1; }
 
         # Show progress
         current_page=$((current_page + 1))
         if [[ $total_pages -eq 0 ]]; then
             if $is_api_v2; then
-                total_pages=$(cf curl "$next_url" | jq '.total_pages')
+                total_pages=$(echo "$json_data" | jq '.total_pages')
             elif $is_api_v3; then
-                total_pages=$(cf curl "$next_url" | jq '.pagination.total_pages')
+                total_pages=$(echo "$json_data" | jq '.pagination.total_pages')
             fi
         fi
         if $VERBOSE; then
