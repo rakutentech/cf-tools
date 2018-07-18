@@ -78,7 +78,7 @@ Examples:
 ```
 ./cf-routemappings.sh
 
-# Add Organizations and Spaces to the output
+# Add Organizations and Spaces to the output (works well only when application names across organizations and spaces are unique)
 join --header -t$'\t' <(./cf-routemappings.sh -Nf App,Route -s App) <(./cf-applist.sh -Nf Name,Organization,Space -s Name) | column -ts$'\t' | less
 ```
 
