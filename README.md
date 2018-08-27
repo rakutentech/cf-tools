@@ -11,6 +11,9 @@ Same as `cf curl` but fetches all pages at once.
 Examples:
 ```
 ./cf-curl.sh /v2/users
+
+# Get all events within the last hour (use gdate instead of date on macOS)
+./cf-curl.sh -v "/v2/events?results-per-page=100&q=timestamp>$(date -u +%FT%TZ --date="1 hour ago")"
 ```
 
 
