@@ -85,6 +85,16 @@ Examples:
 join --header -t$'\t' <(./cf-routemappings.sh -Nf App,Route -s App) <(./cf-applist.sh -Nf Name,Organization,Space -s Name) | column -ts$'\t' | less
 ```
 
+## cf-bg-restart.sh
+Restart an application without downtime (blue-green restart).
+
+WARNING: It is recommended to do simulation in test environment before using this command.
+
+Examples:
+```
+./cf-bg-restart.sh APP_NAME
+```
+
 ## See also
 - Cloud Foundry API v2: https://apidocs.cloudfoundry.org
 - Cloud Foundry API v3: http://v3-apidocs.cloudfoundry.org
