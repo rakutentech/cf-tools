@@ -36,16 +36,14 @@ if [[ $(cf app "$APP_NAME" --guid 2>&1 1>/dev/null) == "App $APP_NAME not found"
   exit 1
 else
   APP_GUID=$(cf app "$APP_NAME" --guid)
+  DROPLET_GUID=$(cf curl "/v3/apps/$APP_GUID/relationships/current_droplet" | jq -r '.data.guid')
 
   # Create temporary directories and files
   export TMPDIR=$(mktemp -d)
   manifest_file=$(mktemp)
-  droplet_file=$(mktemp)
   empty_dir=$(mktemp -d)
 
-  # Download droplet and get manifest
-  log_info "Downloading droplet ..."
-  cf curl "/v2/apps/$APP_GUID/droplet/download" --output "$droplet_file"
+  # Get manifest
   log_info "Getting manifest ..."
   cf create-app-manifest "$APP_NAME" -p "$manifest_file"
 
@@ -66,9 +64,16 @@ else
     [[ $(cf curl "/v2/jobs/$copy_job_guid" | jq -r '.entity.status') == "finished" ]] && break
   done
 
-  # Push droplet, start app
-  log_info "Pushing the the droplet ..."
-  cf push "$APP_NAME" --no-manifest --droplet "$droplet_file" --no-start > /dev/null
+  # Copy droplet
+  log_info "Copying the droplet ..."
+  new_droplet_guid=$(cf curl -X POST "/v3/droplets?source_guid=$DROPLET_GUID" -d "{\"relationships\": {\"app\": {\"data\": {\"guid\": \"$new_app_guid\"}}}}" | jq -r '.guid')
+  while sleep 1; do
+    [[ $(cf curl "/v3/droplets/$new_droplet_guid" | jq -r '.state') == "STAGED" ]] && break
+  done
+  log_info "Setting the droplet as current ..."
+  cf curl -X PATCH "/v3/apps/$new_app_guid/relationships/current_droplet" -d "{\"data\": {\"guid\": \"$new_droplet_guid\"}}" > /dev/null
+
+  # Start the app
   log_info "Starting the app ..."
   cf start "$APP_NAME"
 
