@@ -34,6 +34,9 @@ APP_OLD="${APP_NAME}-venerable"
 if [[ $(cf app "$APP_NAME" --guid 2>&1 1>/dev/null) == "App $APP_NAME not found" ]]; then
   log_error "App $APP_NAME not found"
   exit 1
+elif [[ $(cf curl /v3/apps/$(cf app "$APP_NAME" --guid) | jq -er '.state') != "STARTED" ]]; then
+  log_error "App $APP_NAME is found but not started"
+  exit 1
 else
   APP_GUID=$(cf app "$APP_NAME" --guid)
   DROPLET_GUID=$(cf curl "/v3/apps/$APP_GUID/relationships/current_droplet" | jq -er '.data.guid')
