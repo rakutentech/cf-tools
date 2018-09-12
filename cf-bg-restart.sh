@@ -36,7 +36,7 @@ if [[ $(cf app "$APP_NAME" --guid 2>&1 1>/dev/null) == "App $APP_NAME not found"
   exit 1
 else
   APP_GUID=$(cf app "$APP_NAME" --guid)
-  DROPLET_GUID=$(cf curl "/v3/apps/$APP_GUID/relationships/current_droplet" | jq -r '.data.guid')
+  DROPLET_GUID=$(cf curl "/v3/apps/$APP_GUID/relationships/current_droplet" | jq -er '.data.guid')
 
   # Create temporary directories and files
   export TMPDIR=$(mktemp -d)
@@ -59,14 +59,14 @@ else
 
   # Copy app bits
   log_info "Copying the app bits ..."
-  copy_job_guid=$(cf curl -X POST "/v2/apps/$new_app_guid/copy_bits" -d "{\"source_app_guid\":\"$APP_GUID\"}" | jq -r '.entity.guid')
+  copy_job_guid=$(cf curl -X POST "/v2/apps/$new_app_guid/copy_bits" -d "{\"source_app_guid\":\"$APP_GUID\"}" | jq -er '.entity.guid')
   while sleep 1; do
-    [[ $(cf curl "/v2/jobs/$copy_job_guid" | jq -r '.entity.status') == "finished" ]] && break
+    [[ $(cf curl "/v2/jobs/$copy_job_guid" | jq -er '.entity.status') == "finished" ]] && break
   done
 
   # Copy droplet
   log_info "Copying the droplet ..."
-  new_droplet_guid=$(cf curl -X POST "/v3/droplets?source_guid=$DROPLET_GUID" -d "{\"relationships\": {\"app\": {\"data\": {\"guid\": \"$new_app_guid\"}}}}" | jq -r '.guid')
+  new_droplet_guid=$(cf curl -X POST "/v3/droplets?source_guid=$DROPLET_GUID" -d "{\"relationships\": {\"app\": {\"data\": {\"guid\": \"$new_app_guid\"}}}}" | jq -er '.guid')
   while sleep 1; do
     [[ $(cf curl "/v3/droplets/$new_droplet_guid" | jq -r '.state') == "STAGED" ]] && break
   done
