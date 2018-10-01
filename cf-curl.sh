@@ -91,8 +91,14 @@ get_json () {
     is_api_v2=false
     is_api_v3=false
 
-    [[ ${next_url#/v2} != $next_url ]] && is_api_v2=true
-    [[ ${next_url#/v3} != $next_url ]] && is_api_v3=true
+    if [[ ${next_url#/v2} != $next_url ]]; then
+      is_api_v2=true
+    elif [[ ${next_url#/v3} != $next_url ]]; then
+      is_api_v3=true
+    else
+      echo "ERROR: Unable to detect API version for URI '$next_url'" >&2
+      exit 1
+    fi
 
     next_url_hash=$(echo "$next_url" "$cf_target" | $(which md5sum || which md5) | cut -d' ' -f1)
     cache_filename="/tmp/.$script_name.$user_id.$next_url_hash.$RESOURCES_HASH"
