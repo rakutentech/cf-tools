@@ -39,11 +39,26 @@ if [[ $APP =~ ^$HEX{8}-$HEX{4}-$HEX{4}-$HEX{4}-$HEX{12}$ ]]; then
     GUIDS="$APP"${GUIDS:+$'\n'}"$GUIDS"
 fi
 
+get_app_org_space() {
+    local guid=$1
+
+    app_entry=$(cf curl "/v2/apps/$guid")
+
+    space_url=$(echo "$app_entry" | jq -r '.entity.space_url')
+    space_entry=$(cf curl "$space_url")
+    space_name=$(echo "$space_entry" | jq -r '.entity.name')
+
+    org_url=$(echo "$space_entry" | jq -r '.entity.organization_url')
+    org_name=$(cf curl "$org_url" | jq -r '.entity.name')
+
+    echo "$org_name / $space_name" 
+}
+
 nl=false
 for guid in $GUIDS; do
     $nl && echo -ne "\n" || nl=true
     appname=$(cf curl "/v2/apps/$guid" | jq -r '.entity.name // "<null>"')
-    echo "Application: $appname ($guid)"
+    echo "Application: $appname ($guid / $(get_app_org_space "$guid"))"
     ( cf curl "/v2/apps/$guid/stats" | \
         jq -r 'def bytes_to_megabytes_str(bytes):
                      if bytes != null then
