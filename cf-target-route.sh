@@ -92,7 +92,7 @@ targets=$(
 # Prompt
 echo "Targets:"
 echo
-echo "$targets" | column -ts$'\t' | nl
+(echo -e "#\tGUID\tOrganization\tSpace"; echo "$targets" | nl -w4) | column -ts$'\t'
 echo
 read -p "Please choose the target [1]: " target_n; target_n=${target_n:-1}
 
