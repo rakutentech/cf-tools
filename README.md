@@ -4,6 +4,39 @@ Dependencies:
 - jq (>=1.5) and cf commands must be installed
 - you must be logged in using "cf login"
 
+# How to install
+
+Make sure you have `git` installed before continue
+
+## Linux 64-bit
+```
+mkdir -p ~/bin
+
+which cf || { wget -q "https://packages.cloudfoundry.org/stable?release=linux64-binary&source=github" -O - | tar -xzC ~/bin cf && chmod +x ~/bin/cf; }
+which jq || { wget -q "https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64" -O ~/bin/jq && chmod +x ~/bin/jq; }
+
+git clone https://github.com/rakutentech/cf-tools ~/cf-tools
+
+echo 'PATH="$PATH:$HOME/cf-tools"' >> ~/.profile
+source ~/.profile
+```
+
+## macOS
+```
+mkdir -p ~/bin
+
+which cf || { curl -sL "https://packages.cloudfoundry.org/stable?release=macosx64-binary&source=github" | tar -zxC ~/bin cf && chmod +x ~/bin/cf; }
+which jq || { curl -sL "https://github.com/stedolan/jq/releases/download/jq-1.6/jq-osx-amd64" -o ~/bin/jq && chmod +x ~/bin/jq; }
+
+echo 'PATH="$HOME/bin:$PATH"' >> ~/.profile
+
+git clone https://github.com/rakutentech/cf-tools ~/cf-tools
+
+echo 'PATH="$PATH:$HOME/cf-tools"' >> ~/.profile
+source ~/.profile
+```
+
+# How to use
 
 ## cf-curl.sh
 Same as `cf curl` but fetches all pages at once.
