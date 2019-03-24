@@ -120,7 +120,7 @@ get_json () {
     total_pages=0
     while [[ $next_url != null ]]; do
         # Get data
-        json_data=$(cf curl "$next_url") || { echo "ERROR: Unable to get data from $next_url" >&2; exit 1; }
+        json_data=$(cf curl -f "$next_url") || { echo "ERROR: Unable to get data from $next_url" >&2; exit 1; }
 
         # Show progress
         current_page=$((current_page + 1))
