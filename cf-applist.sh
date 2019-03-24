@@ -246,7 +246,7 @@ get_json () {
         if $is_api_v2; then
             next_url=$(echo "$json_data" | jq .next_url -r)
         elif $is_api_v3; then
-            next_url=$(echo "$json_data" | jq .pagination.next.href -r | sed 's#^http\(s\?\)://[^/]\+/v3#/v3#')
+            next_url=$(echo "$json_data" | jq .pagination.next.href -r | sed -E 's#^http(s?)://[^/]+/v3#/v3#')
         fi
     done
     json_output=$( (IFS=$'\n'; echo "${output_all[*]}") | jq -s 'add' )
