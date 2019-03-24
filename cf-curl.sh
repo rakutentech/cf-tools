@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# cf-curl.sh - Same as 'cf curl' but fetches all pages
+# cf-curl.sh - Similar to 'cf curl' but fetches all pages
 # Copyright (C) 2016  Rakuten, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
