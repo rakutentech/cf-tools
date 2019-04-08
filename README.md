@@ -1,7 +1,7 @@
 # Useful shell scripts for Cloud Foundry API v2 and v3
 
 Dependencies:
-- jq (>=1.5) and cf commands must be installed
+- jq (>=1.5) and cf (>=v6.43) commands must be installed
 - you must be logged in using "cf login"
 
 # How to install

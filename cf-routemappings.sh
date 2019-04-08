@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Dependencies: cf, jq >= 1.5
+# Dependencies: cf >= v6.43, jq >= 1.5
 
 # Run 'cf curl /v2/route_mappings' to see what input data looks like
 
