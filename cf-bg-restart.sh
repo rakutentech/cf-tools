@@ -62,10 +62,7 @@ else
 
   # Copy app bits
   log_info "Copying the app bits ..."
-  copy_job_guid=$(cf curl -X POST "/v2/apps/$new_app_guid/copy_bits" -d "{\"source_app_guid\":\"$APP_GUID\"}" | jq -er '.entity.guid')
-  while sleep 1; do
-    [[ $(cf curl "/v2/jobs/$copy_job_guid" | jq -er '.entity.status') == "finished" ]] && break
-  done
+  cf copy-source --no-restart "$APP_OLD" "$APP_NAME"
 
   # Copy droplet
   log_info "Copying the droplet ..."
