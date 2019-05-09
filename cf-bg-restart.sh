@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# cf-bg-restart.sh - Show list of instances for a particular application, inspired by bg-restage: https://github.com/orange-cloudfoundry/cf-plugin-bg-restage
+# cf-bg-restart.sh - Zero-downtime application restarting and restaging, inspired by bg-restage: https://github.com/orange-cloudfoundry/cf-plugin-bg-restage
 # Copyright (C) 2018  Rakuten, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
@@ -20,8 +20,42 @@
 
 set -euo pipefail
 
-if [[ $# -ne 1 ]]; then
-    echo "Usage: $(basename "$0") APP_NAME"
+show_usage () {
+    cat << EOF
+Usage: $(basename "$0") [OPTION]... APP_NAME
+
+  -r            restage
+  -s STACK      override stack (must be used with -r)
+  -h            display this help and exit
+
+Examples:
+  $(basename "$0") myapp
+EOF
+}
+
+# Process command line options
+opt_restage="false"
+opt_stack=""
+while getopts "rs:h" opt; do
+    case $opt in
+        r)  opt_restage="true"
+            ;;
+        s)  opt_stack=$OPTARG
+            ;;
+        h)
+            show_usage
+            exit 0
+            ;;
+        ?)
+            show_usage >&2
+            exit 1
+            ;;
+    esac
+done
+shift $(($OPTIND - 1))
+
+if [[ $# -ne 1 ]] || { [[ -n $opt_stack ]] && ! $opt_restage; }; then
+    show_usage >&2
     exit 1
 fi
 
@@ -57,21 +91,27 @@ else
   # Push empty app
   log_info "Pushing an empty app ..."
   touch "$empty_dir/.empty"
-  cf push -f "$manifest_file" -p "$empty_dir" --no-start > /dev/null
+  if $opt_restage && [[ -n $opt_stack ]]; then
+    cf push -f "$manifest_file" -p "$empty_dir" --no-start -s "$opt_stack" > /dev/null
+  else
+    cf push -f "$manifest_file" -p "$empty_dir" --no-start > /dev/null
+  fi
   new_app_guid=$(cf app "$APP_NAME" --guid)
 
   # Copy app bits
   log_info "Copying the app bits ..."
   cf copy-source --no-restart "$APP_OLD" "$APP_NAME"
-
+ 
   # Copy droplet
-  log_info "Copying the droplet ..."
-  new_droplet_guid=$(cf curl -X POST "/v3/droplets?source_guid=$DROPLET_GUID" -d "{\"relationships\": {\"app\": {\"data\": {\"guid\": \"$new_app_guid\"}}}}" | jq -er '.guid')
-  while sleep 1; do
-    [[ $(cf curl "/v3/droplets/$new_droplet_guid" | jq -r '.state') == "STAGED" ]] && break
-  done
-  log_info "Setting the droplet as current ..."
-  cf curl -X PATCH "/v3/apps/$new_app_guid/relationships/current_droplet" -d "{\"data\": {\"guid\": \"$new_droplet_guid\"}}" > /dev/null
+  if ! $opt_restage; then
+    log_info "Copying the droplet ..."
+    new_droplet_guid=$(cf curl -X POST "/v3/droplets?source_guid=$DROPLET_GUID" -d "{\"relationships\": {\"app\": {\"data\": {\"guid\": \"$new_app_guid\"}}}}" | jq -er '.guid')
+    while sleep 1; do
+      [[ $(cf curl "/v3/droplets/$new_droplet_guid" | jq -r '.state') == "STAGED" ]] && break
+    done
+    log_info "Setting the droplet as current ..."
+    cf curl -X PATCH "/v3/apps/$new_app_guid/relationships/current_droplet" -d "{\"data\": {\"guid\": \"$new_droplet_guid\"}}" > /dev/null
+  fi
 
   # Start the app
   log_info "Starting the app ..."
