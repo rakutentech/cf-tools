@@ -24,9 +24,10 @@ show_usage () {
     cat << EOF
 Usage: $(basename "$0") [OPTION]... APP_NAME
 
-  -r            restage
-  -s STACK      override stack (must be used with -r)
-  -h            display this help and exit
+  -r                restage
+  -s STACK          override stack (must be used with -r)
+  -b BUILDPACK      override buildpack (must be used with -r)
+  -h                display this help and exit
 
 Examples:
   $(basename "$0") myapp
@@ -36,11 +37,14 @@ EOF
 # Process command line options
 opt_restage="false"
 opt_stack=""
-while getopts "rs:h" opt; do
+opt_buildpack=""
+while getopts "rs:b:h" opt; do
     case $opt in
         r)  opt_restage="true"
             ;;
         s)  opt_stack=$OPTARG
+            ;;
+        b)  opt_buildpack=$OPTARG
             ;;
         h)
             show_usage
@@ -54,9 +58,15 @@ while getopts "rs:h" opt; do
 done
 shift $(($OPTIND - 1))
 
-if [[ $# -ne 1 ]] || { [[ -n $opt_stack ]] && ! $opt_restage; }; then
+if [[ $# -ne 1 ]] || { [[ -n $opt_stack || -n $opt_buildpack ]] && ! $opt_restage; }; then
     show_usage >&2
     exit 1
+fi
+
+cf_push_opts=()
+if $opt_restage; then
+    [[ -n $opt_stack ]] && cf_push_opts+=(-s "$opt_stack")
+    [[ -n $opt_buildpack ]] && cf_push_opts+=(-b "$opt_buildpack")
 fi
 
 log_info () { sed <<< "$@" 's/^/[INFO] /'; }
@@ -91,11 +101,7 @@ else
   # Push empty app
   log_info "Pushing an empty app ..."
   touch "$empty_dir/.empty"
-  if $opt_restage && [[ -n $opt_stack ]]; then
-    cf push -f "$manifest_file" -p "$empty_dir" --no-start -s "$opt_stack" > /dev/null
-  else
-    cf push -f "$manifest_file" -p "$empty_dir" --no-start > /dev/null
-  fi
+  cf push -f "$manifest_file" -p "$empty_dir" --no-start "${cf_push_opts[@]+"${cf_push_opts[@]}"}" > /dev/null
   new_app_guid=$(cf app "$APP_NAME" --guid)
 
   # Copy app bits
