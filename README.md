@@ -119,18 +119,19 @@ join --header -t$'\t' <(./cf-routemappings.sh -Nf App,Route -s App) <(./cf-appli
 ```
 
 ## cf-bg-restart.sh
-Restart an application without downtime (blue-green restart).
+Restart or restage an application without downtime (blue-green restart / restage).
 
 WARNING: It is recommended to do simulation in test environment before using this command.
 
 What you also should keep in mind when using this command:
 - GUID of application changes (which also means that `cf events` are lost)
-- Droplet will lose information about which bits were used for its generation (`cf curl /v3/apps/$(cf app MY_APP --guid)/droplets/current | jq .links.package` will be null),
+- Specific to restart only (not restage): droplet will lose information about which bits were used for its generation (`cf curl /v3/apps/$(cf app MY_APP --guid)/droplets/current | jq .links.package` will be null),
   which is not a problem unless you use other tools relying on this information
 
 Examples:
 ```
 ./cf-bg-restart.sh APP_NAME
+./cf-bg-restart.sh -r -s cflinuxfs3 APP_NAME
 ```
 
 ## See also
