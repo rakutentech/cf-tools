@@ -24,6 +24,7 @@ show_usage () {
     cat << EOF
 Usage: $(basename "$0") [OPTION]... APP_NAME
 
+  -S                enable ssh
   -r                restage
   -s STACK          override stack (must be used with -r)
   -b BUILDPACK      override buildpack (must be used with -r)
@@ -35,11 +36,14 @@ EOF
 }
 
 # Process command line options
+opt_ssh="false"
 opt_restage="false"
 opt_stack=""
 opt_buildpack=""
-while getopts "rs:b:h" opt; do
+while getopts "Srs:b:h" opt; do
     case $opt in
+        S)  opt_ssh="true"
+            ;;
         r)  opt_restage="true"
             ;;
         s)  opt_stack=$OPTARG
@@ -103,6 +107,12 @@ else
   touch "$empty_dir/.empty"
   cf push -f "$manifest_file" -p "$empty_dir" --no-start "${cf_push_opts[@]+"${cf_push_opts[@]}"}" > /dev/null
   new_app_guid=$(cf app "$APP_NAME" --guid)
+
+  # Enable SSH
+  if $opt_ssh; then
+    log_info "Enabling SSH ..."
+    cf enable-ssh "$APP_NAME"
+  fi
 
   # Copy app bits
   log_info "Copying the app bits ..."
