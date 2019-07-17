@@ -32,7 +32,9 @@ Usage: $(basename "$0") [OPTION]...
 
   -s <sort field>           sort by specified field index or its name
   -S <sort field>           sort by specified field index or its name (numeric)
-  -f <field1,field2,...>    show only fields specified by indexes or field names
+  -f <field1,field2,...>    show only fields specified by indexes or field names 
+  -o <organization name>    specify target organization 
+  -x <space name>           specify target space
   -c <minutes>              filter objects created within last <minutes>
   -u <minutes>              filter objects updated within last <minutes>
   -C <minutes>              filter objects created more than <minutes> ago
@@ -41,7 +43,7 @@ Usage: $(basename "$0") [OPTION]...
   -n                        ignore cache
   -N                        do not format output and keep it tab-separated (useful for further processing)
   -j                        print json (filter and sort options are not applied when -j is in use)
-  -v                        verbose
+  -v                        verbose 
   -h                        display this help and exit
 EOF
 }
@@ -82,7 +84,10 @@ opt_format_output=""
 opt_update_cache_minutes=""
 opt_print_json=""
 opt_verbose=""
-while getopts "s:S:c:u:C:U:f:k:nNjvh" opt; do
+opt_org=""
+opt_space=""
+
+while getopts "s:S:c:u:C:U:f:k:o:x:nNjvh" opt; do
     case $opt in
         s)  opt_sort_options="-k"
             opt_sort_field=$OPTARG
@@ -109,6 +114,10 @@ while getopts "s:S:c:u:C:U:f:k:nNjvh" opt; do
         j)  opt_print_json="true"
             ;;
         v)  opt_verbose="true"
+            ;;
+        o)  opt_org=$OPTARG
+            ;;
+        x)  opt_space=$OPTARG
             ;;
         h)
             show_usage
@@ -173,6 +182,20 @@ if [[ -n $opt_updated_minutes_older_than ]]; then
     POST_FILTER="$POST_FILTER . |
                  (.metadata.updated_at as \$updated_at | if \$updated_at != null then \$updated_at | (now - fromdate) / 60 else null end ) as \$updated_min_ago |
                  select (\$updated_min_ago != null) | select (\$updated_min_ago > $opt_updated_minutes_older_than) |"
+fi
+
+# Organization filter
+# If organization is not found, command exits with error-code 1
+ORG_FILTER=""
+if [[ ! -z $opt_org ]]; then
+    ORG_FILTER="&q=organization_guid:`cf org $opt_org --guid`"
+fi
+
+# Space filter
+# If space is not found, command exits with error-code 1
+SPACE_FILTER=""
+if [[ ! -z $opt_space ]]; then
+    SPACE_FILTER="&q=space_guid:`cf space $opt_space --guid`"
 fi
 
 # The following variables are used to generate cache file path
@@ -275,8 +298,13 @@ json_stacks=$(get_json "$next_url" | jq "{stacks:.}")
 next_url="/v3/isolation_segments?per_page=100"
 json_isolation_segments=$(get_json "$next_url" | jq "{isolation_segments:.}")
 
+### Custom part
+# Set organization and space
+org_guid="8a646d58-f913-4344-8006-8a436413beb4"
+space_guid="0728c36a-5907-40d3-966a-88f5787530c3"
+
 # Get applications
-next_url="/v2/apps?results-per-page=100"
+next_url="/v2/apps?results-per-page=100${ORG_FILTER}${SPACE_FILTER}"
 json_apps=$(get_json "$next_url" | jq "{apps:.}")
 
 # Add extra data to json_organizations
