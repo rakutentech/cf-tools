@@ -79,7 +79,8 @@ log_error () { sed <<< "$@" 's/^/[ERROR] /'; }
 APP_NAME="$1"
 APP_OLD="${APP_NAME}-venerable"
 
-if [[ $(cf app "$APP_NAME" --guid 2>&1 1>/dev/null) == "App $APP_NAME not found" ]]; then
+# Unfortunately cf cli doesn't provide a programmatic way to determine the currently targeted space
+if [[ $(cf app "$APP_NAME" --guid 2>&1 1>/dev/null) =~ App\ \'?$APP_NAME\'?\ not\ found ]]; then
   log_error "App $APP_NAME not found"
   exit 1
 elif [[ $(cf curl /v3/apps/$(cf app "$APP_NAME" --guid) | jq -er '.state') != "STARTED" ]]; then
